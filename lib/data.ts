@@ -1,0 +1,212 @@
+import type { AppState, Campus, Cleanliness, GuestFrequency, HousingType, NoiseTolerance, RoommateProfile, SleepSchedule, StudyHabit, UserProfile } from "./types";
+
+export const swipeLimit = 30;
+export const swipeWindowMs = 12 * 60 * 60 * 1000;
+
+export const sleepLabels: Record<SleepSchedule, string> = {
+  early: "Early sleeper",
+  balanced: "Flexible schedule",
+  late: "Night owl",
+};
+
+export const cleanlinessLabels: Record<Cleanliness, string> = {
+  relaxed: "Relaxed",
+  moderate: "Moderately tidy",
+  "very-clean": "Very clean",
+};
+
+export const studyLabels: Record<StudyHabit, string> = {
+  "quiet-room": "Quiet room study",
+  library: "Library study",
+  "social-study": "Social study",
+};
+
+export const guestLabels: Record<GuestFrequency, string> = {
+  rarely: "Rare guests",
+  sometimes: "Some guests",
+  often: "Frequent guests",
+};
+
+export const noiseLabels: Record<NoiseTolerance, string> = {
+  low: "Low noise",
+  medium: "Some noise okay",
+  high: "Very flexible",
+};
+
+export const housingLabels: Record<HousingType, string> = {
+  dorm: "Dorm",
+  apartment: "Apartment",
+  either: "Open to either",
+};
+
+export const campusLabels: Record<Campus, string> = {
+  "college-ave": "College Ave",
+  busch: "Busch",
+  livingston: "Livingston",
+  "cook-douglass": "Cook/Douglass",
+  any: "Any Rutgers campus",
+};
+
+export const defaultUser: UserProfile = {
+  name: "New Scarlet Knight",
+  pronouns: "they/them",
+  country: "International student",
+  major: "Undecided",
+  bio: "Incoming Rutgers student looking for a respectful, compatible roommate before orientation.",
+  interests: ["coffee", "campus events", "study groups"],
+  sleep: "balanced",
+  cleanliness: "moderate",
+  study: "library",
+  guests: "sometimes",
+  noise: "medium",
+  budgetMin: 800,
+  budgetMax: 1200,
+  housing: "either",
+  campus: "any",
+};
+
+export const demoProfiles: RoommateProfile[] = [
+  {
+    id: "aisha",
+    name: "Aisha Khan",
+    pronouns: "she/her",
+    country: "Pakistan",
+    major: "Computer Science",
+    year: "First-year",
+    avatar: "AK",
+    likedYou: true,
+    lookingFor: "A calm room, shared grocery runs, and someone who respects study hours.",
+    bio: "I am arriving for ISO and hoping to find a roommate who wants a balanced social and study routine.",
+    interests: ["tea", "coding", "Bollywood", "late-night walks"],
+    sleep: "balanced",
+    cleanliness: "very-clean",
+    study: "library",
+    guests: "sometimes",
+    noise: "medium",
+    budgetMin: 850,
+    budgetMax: 1250,
+    housing: "either",
+    campus: "college-ave",
+  },
+  {
+    id: "mateo",
+    name: "Mateo Rivera",
+    pronouns: "he/him",
+    country: "Colombia",
+    major: "Business Analytics",
+    year: "Transfer",
+    avatar: "MR",
+    likedYou: false,
+    lookingFor: "A roommate who is friendly but keeps weekdays focused.",
+    bio: "Transfer student trying to settle in before classes start. I like clean shared spaces and weekend soccer.",
+    interests: ["soccer", "finance", "salsa", "meal prep"],
+    sleep: "early",
+    cleanliness: "very-clean",
+    study: "quiet-room",
+    guests: "rarely",
+    noise: "low",
+    budgetMin: 900,
+    budgetMax: 1300,
+    housing: "apartment",
+    campus: "livingston",
+  },
+  {
+    id: "mei",
+    name: "Mei Chen",
+    pronouns: "she/her",
+    country: "China",
+    major: "Biomedical Engineering",
+    year: "First-year",
+    avatar: "MC",
+    likedYou: true,
+    lookingFor: "A considerate roommate who keeps mornings quiet and plans chores clearly.",
+    bio: "I study a lot, cook often, and want a roommate who communicates directly.",
+    interests: ["sketching", "lab research", "ramen", "volleyball"],
+    sleep: "early",
+    cleanliness: "moderate",
+    study: "library",
+    guests: "rarely",
+    noise: "low",
+    budgetMin: 750,
+    budgetMax: 1100,
+    housing: "dorm",
+    campus: "busch",
+  },
+  {
+    id: "nora",
+    name: "Nora Hassan",
+    pronouns: "she/her",
+    country: "Egypt",
+    major: "Public Health",
+    year: "First-year",
+    avatar: "NH",
+    likedYou: false,
+    lookingFor: "A social but respectful roommate who likes exploring campus together.",
+    bio: "I am excited for Rutgers and want a roommate who is open to events, food spots, and honest check-ins.",
+    interests: ["public health", "concerts", "photography", "coffee shops"],
+    sleep: "late",
+    cleanliness: "moderate",
+    study: "social-study",
+    guests: "often",
+    noise: "high",
+    budgetMin: 700,
+    budgetMax: 1150,
+    housing: "either",
+    campus: "college-ave",
+  },
+  {
+    id: "samir",
+    name: "Samir Patel",
+    pronouns: "he/him",
+    country: "India",
+    major: "Data Science",
+    year: "Graduate",
+    avatar: "SP",
+    likedYou: true,
+    lookingFor: "A dependable roommate who values quiet evenings and shared expectations.",
+    bio: "New to New Brunswick, focused on school, and happy to split responsibilities clearly.",
+    interests: ["data", "cricket", "vegetarian cooking", "board games"],
+    sleep: "balanced",
+    cleanliness: "very-clean",
+    study: "quiet-room",
+    guests: "sometimes",
+    noise: "medium",
+    budgetMin: 950,
+    budgetMax: 1400,
+    housing: "apartment",
+    campus: "any",
+  },
+  {
+    id: "lina",
+    name: "Lina Okafor",
+    pronouns: "she/her",
+    country: "Nigeria",
+    major: "Nursing",
+    year: "First-year",
+    avatar: "LO",
+    likedYou: false,
+    lookingFor: "A roommate with a predictable routine and a friendly shared space.",
+    bio: "I am coming for ISO, planning ahead, and hoping for a roommate who is easy to talk to.",
+    interests: ["nursing", "gospel choir", "running", "podcasts"],
+    sleep: "early",
+    cleanliness: "moderate",
+    study: "library",
+    guests: "sometimes",
+    noise: "medium",
+    budgetMin: 800,
+    budgetMax: 1200,
+    housing: "dorm",
+    campus: "cook-douglass",
+  },
+];
+
+export function createInitialState(): AppState {
+  return {
+    onboarded: false,
+    user: defaultUser,
+    swipes: [],
+    matches: [],
+    messages: [],
+    swipeWindowStartedAt: new Date().toISOString(),
+  };
+}
