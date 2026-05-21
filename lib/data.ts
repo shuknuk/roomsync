@@ -49,9 +49,12 @@ export const campusLabels: Record<Campus, string> = {
 
 export const defaultUser: UserProfile = {
   name: "New Scarlet Knight",
+  age: 18,
+  university: "Rutgers University",
   pronouns: "they/them",
   country: "International student",
   major: "Undecided",
+  year: "Freshman",
   bio: "Incoming Rutgers student looking for a respectful, compatible roommate before orientation.",
   interests: ["coffee", "campus events", "study groups"],
   sleep: "balanced",
@@ -63,10 +66,29 @@ export const defaultUser: UserProfile = {
   budgetMax: 1200,
   housing: "either",
   campus: "any",
+  temperaturePreference: "Flexible",
+  willingToShare: false,
+  cleanlinessScore: 50,
+  noiseToleranceScore: 50,
+  guestsFrequencyScore: 50,
+};
+
+const demoProfileExtras: Pick<
+  UserProfile,
+  "age" | "university" | "temperaturePreference" | "willingToShare" | "cleanlinessScore" | "noiseToleranceScore" | "guestsFrequencyScore"
+> = {
+  age: 18,
+  university: "Rutgers University",
+  temperaturePreference: "Flexible",
+  willingToShare: true,
+  cleanlinessScore: 65,
+  noiseToleranceScore: 55,
+  guestsFrequencyScore: 45,
 };
 
 export const demoProfiles: RoommateProfile[] = [
   {
+    ...demoProfileExtras,
     id: "aisha",
     name: "Aisha Khan",
     pronouns: "she/her",
@@ -89,6 +111,7 @@ export const demoProfiles: RoommateProfile[] = [
     campus: "college-ave",
   },
   {
+    ...demoProfileExtras,
     id: "mateo",
     name: "Mateo Rivera",
     pronouns: "he/him",
@@ -111,6 +134,7 @@ export const demoProfiles: RoommateProfile[] = [
     campus: "livingston",
   },
   {
+    ...demoProfileExtras,
     id: "mei",
     name: "Mei Chen",
     pronouns: "she/her",
@@ -133,6 +157,7 @@ export const demoProfiles: RoommateProfile[] = [
     campus: "busch",
   },
   {
+    ...demoProfileExtras,
     id: "nora",
     name: "Nora Hassan",
     pronouns: "she/her",
@@ -155,6 +180,7 @@ export const demoProfiles: RoommateProfile[] = [
     campus: "college-ave",
   },
   {
+    ...demoProfileExtras,
     id: "samir",
     name: "Samir Patel",
     pronouns: "he/him",
@@ -177,6 +203,7 @@ export const demoProfiles: RoommateProfile[] = [
     campus: "any",
   },
   {
+    ...demoProfileExtras,
     id: "lina",
     name: "Lina Okafor",
     pronouns: "she/her",
@@ -202,10 +229,14 @@ export const demoProfiles: RoommateProfile[] = [
 
 export function createInitialState(): AppState {
   return {
+    authenticated: false,
+    authEmail: null,
     onboarded: false,
     user: defaultUser,
+    profiles: demoProfiles.map((profile) => ({ ...profile, source: "demo" })),
     swipes: [],
     matches: [],
+    matchIdsByProfileId: {},
     messages: [],
     swipeWindowStartedAt: new Date().toISOString(),
   };

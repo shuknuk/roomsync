@@ -20,19 +20,27 @@ export type Lifestyle = {
 
 export type UserProfile = Lifestyle & {
   name: string;
+  age: number | null;
+  university: string;
   pronouns: string;
   country: string;
   major: string;
+  year: string;
   bio: string;
   interests: string[];
+  temperaturePreference: string;
+  willingToShare: boolean;
+  cleanlinessScore: number;
+  noiseToleranceScore: number;
+  guestsFrequencyScore: number;
 };
 
 export type RoommateProfile = UserProfile & {
   id: string;
-  year: string;
   avatar: string;
   likedYou: boolean;
   lookingFor: string;
+  source?: "real" | "demo";
 };
 
 export type SwipeDecision = "like" | "pass";
@@ -52,10 +60,14 @@ export type Message = {
 };
 
 export type AppState = {
+  authenticated: boolean;
+  authEmail: string | null;
   onboarded: boolean;
   user: UserProfile;
+  profiles: RoommateProfile[];
   swipes: SwipeRecord[];
   matches: string[];
+  matchIdsByProfileId: Record<string, string>;
   messages: Message[];
   swipeWindowStartedAt: string;
 };

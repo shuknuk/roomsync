@@ -5,15 +5,20 @@ import type { ComponentType, ReactNode } from "react";
 import {
   ArrowRight,
   Check,
+  HelpCircle,
   Home,
   Lock,
   MessageCircle,
+  Moon,
+  Plus,
   RotateCcw,
   Search,
   Send,
   Settings,
-  Sparkles,
+  Shield,
+  ShieldCheck,
   User,
+  UserPlus,
   Users,
   X,
 } from "lucide-react";
@@ -21,8 +26,6 @@ import {
   campusLabels,
   cleanlinessLabels,
   createInitialState,
-  defaultUser,
-  demoProfiles,
   guestLabels,
   housingLabels,
   noiseLabels,
@@ -32,8 +35,9 @@ import {
   swipeWindowMs,
 } from "@/lib/data";
 import { getCompatibility } from "@/lib/matching";
-import { loadState, resetState, saveState } from "@/lib/storage";
-import type { AppState, Campus, Cleanliness, GuestFrequency, HousingType, Message, NoiseTolerance, RoommateProfile, SleepSchedule, StudyHabit, UserProfile } from "@/lib/types";
+import { loadBackendState, signOut } from "@/lib/roomsync-backend";
+import { rutgersEmailMessage } from "@/lib/supabase/config";
+import type { AppState, Campus, Cleanliness, GuestFrequency, HousingType, NoiseTolerance, RoommateProfile, SleepSchedule, StudyHabit, SwipeDecision, UserProfile } from "@/lib/types";
 
 type View = "home" | "onboarding" | "discover" | "matches" | "messages" | "profile";
 
@@ -48,8 +52,8 @@ const navItems: { view: View; label: string; icon: ComponentType<{ className?: s
 const textInput =
   "w-full rounded-2xl border border-slate-700 bg-slate-950/70 px-4 py-3 text-sm text-slate-100 outline-none transition focus:border-teal-300";
 
-const selectInput =
-  "w-full rounded-2xl border border-slate-700 bg-slate-950/70 px-4 py-3 text-sm text-slate-100 outline-none transition focus:border-teal-300";
+const profileInput =
+  "w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-base text-white placeholder:text-white/30 outline-none transition focus:border-purple-400";
 
 function minutesUntilReset(state: AppState) {
   const windowStart = new Date(state.swipeWindowStartedAt).getTime();
@@ -58,31 +62,14 @@ function minutesUntilReset(state: AppState) {
 }
 
 function getRemainingSwipes(state: AppState) {
-  return Math.max(0, swipeLimit - state.swipes.length);
+  const cutoff = Date.now() - swipeWindowMs;
+  const recentSwipes = state.swipes.filter((swipe) => new Date(swipe.swipedAt).getTime() >= cutoff);
+  return Math.max(0, swipeLimit - recentSwipes.length);
 }
 
 function getNextProfile(state: AppState) {
   const seen = new Set(state.swipes.map((swipe) => swipe.profileId));
-  return demoProfiles.find((profile) => !seen.has(profile.id)) ?? null;
-}
-
-function createSeedMessages(profile: RoommateProfile): Message[] {
-  return [
-    {
-      id: `${profile.id}-seed-1`,
-      profileId: profile.id,
-      sender: "them",
-      text: `Hi, I am ${profile.name.split(" ")[0]}. Glad we matched before ISO.`,
-      sentAt: new Date().toISOString(),
-    },
-    {
-      id: `${profile.id}-seed-2`,
-      profileId: profile.id,
-      sender: "me",
-      text: "Same here. Your profile looked like a strong lifestyle fit.",
-      sentAt: new Date().toISOString(),
-    },
-  ];
+  return state.profiles.find((profile) => !seen.has(profile.id)) ?? null;
 }
 
 export function RoomSyncApp() {
@@ -90,32 +77,99 @@ export function RoomSyncApp() {
   const [view, setView] = useState<View>("home");
   const [activeThread, setActiveThread] = useState<string | null>(null);
   const [loaded, setLoaded] = useState(false);
+  const [status, setStatus] = useState<string | null>(null);
 
   useEffect(() => {
-    const nextState = loadState();
-    // LocalStorage is only available after hydration, so the MVP bootstraps browser state here.
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    setState(nextState);
-    setView(nextState.onboarded ? "discover" : "home");
-    setLoaded(true);
+    void refreshState();
   }, []);
 
-  useEffect(() => {
-    if (loaded) {
-      saveState(state);
-    }
-  }, [loaded, state]);
-
-  function updateState(updater: (current: AppState) => AppState) {
-    setState((current) => updater(current));
+  async function refreshState(nextView?: View) {
+    const nextState = await loadBackendState();
+    setState(nextState);
+    setView(nextView ?? (nextState.authenticated ? (nextState.onboarded ? "discover" : "onboarding") : "home"));
+    setLoaded(true);
   }
 
-  function restartPrototype() {
-    resetState();
-    const nextState = createInitialState();
-    setState(nextState);
+  async function saveProfile(profile: UserProfile) {
+    setStatus(null);
+    const response = await fetch("/api/profile", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(profile),
+    });
+    const result = (await response.json()) as { error?: string };
+
+    if (!response.ok) {
+      setStatus(result.error ?? "Could not save profile.");
+      return;
+    }
+
+    await refreshState("discover");
+  }
+
+  async function handleSwipe(profile: RoommateProfile, decision: SwipeDecision) {
+    if (getRemainingSwipes(state) <= 0 || state.swipes.some((swipe) => swipe.profileId === profile.id)) {
+      return;
+    }
+
+    setStatus(null);
+
+    if (profile.source === "demo") {
+      setState((current) => ({
+        ...current,
+        swipes: [
+          ...current.swipes,
+          {
+            profileId: profile.id,
+            decision,
+            swipedAt: new Date().toISOString(),
+          },
+        ],
+      }));
+      return;
+    }
+
+    const response = await fetch("/api/swipes", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ targetId: profile.id, decision }),
+    });
+    const result = (await response.json()) as { error?: string };
+
+    if (!response.ok) {
+      setStatus(result.error ?? "Could not save swipe.");
+      return;
+    }
+
+    await refreshState("discover");
+  }
+
+  async function sendMessage(profileId: string, text: string) {
+    const matchId = state.matchIdsByProfileId[profileId];
+    if (!matchId) {
+      setStatus("Messaging unlocks only after a mutual match.");
+      return;
+    }
+
+    const response = await fetch("/api/messages", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ matchId, body: text }),
+    });
+    const result = (await response.json()) as { error?: string };
+
+    if (!response.ok) {
+      setStatus(result.error ?? "Could not send message.");
+      return;
+    }
+
+    await refreshState("messages");
+  }
+
+  async function handleSignOut() {
+    await signOut();
     setActiveThread(null);
-    setView("home");
+    await refreshState("home");
   }
 
   if (!loaded) {
@@ -128,56 +182,40 @@ export function RoomSyncApp() {
     );
   }
 
+  if (view === "home") {
+    return (
+      <HomeScreen
+        authenticated={state.authenticated}
+        onboarded={state.onboarded}
+        onStart={() => setView(state.authenticated ? (state.onboarded ? "discover" : "onboarding") : "profile")}
+        onNavigate={setView}
+      />
+    );
+  }
+
   return (
     <div className="min-h-screen pb-24 text-slate-100 md:pb-0">
-      <TopNav activeView={view} onNavigate={setView} onboarded={state.onboarded} onReset={restartPrototype} />
+      <TopNav activeView={view} onNavigate={setView} authenticated={state.authenticated} onboarded={state.onboarded} authEmail={state.authEmail} onSignOut={handleSignOut} />
       <main className="mx-auto w-full max-w-6xl px-4 py-5 sm:px-6 lg:px-8">
-        {view === "home" && <HomeScreen onStart={() => setView(state.onboarded ? "discover" : "onboarding")} />}
+        {status && (
+          <div className="mb-4 rounded-2xl border border-red-400/30 bg-red-500/10 px-4 py-3 text-sm text-red-100">
+            {status}
+          </div>
+        )}
         {view === "onboarding" && (
-          <OnboardingScreen
-            initialProfile={state.user}
-            onComplete={(profile) => {
-              updateState((current) => ({ ...current, onboarded: true, user: profile }));
-              setView("discover");
-            }}
-          />
+          state.authenticated ? (
+            <OnboardingScreen initialProfile={state.user} authEmail={state.authEmail} onComplete={saveProfile} />
+          ) : (
+            <AuthScreen onAuthenticated={() => refreshState("onboarding")} />
+          )
         )}
         {view === "discover" && (
           <DiscoverScreen
             state={state}
-            onSwipe={(profile, decision) => {
-              updateState((current) => {
-                if (getRemainingSwipes(current) <= 0) {
-                  return current;
-                }
-
-                const alreadySwiped = current.swipes.some((swipe) => swipe.profileId === profile.id);
-                if (alreadySwiped) {
-                  return current;
-                }
-
-                const matched = decision === "like" && profile.likedYou;
-                const messages = matched && !current.messages.some((message) => message.profileId === profile.id)
-                  ? [...current.messages, ...createSeedMessages(profile)]
-                  : current.messages;
-
-                return {
-                  ...current,
-                  swipes: [
-                    ...current.swipes,
-                    {
-                      profileId: profile.id,
-                      decision,
-                      swipedAt: new Date().toISOString(),
-                    },
-                  ],
-                  matches: matched && !current.matches.includes(profile.id) ? [...current.matches, profile.id] : current.matches,
-                  messages,
-                };
-              });
-            }}
+            onSwipe={handleSwipe}
             onCompleteProfile={() => setView("onboarding")}
             onViewMatches={() => setView("matches")}
+            onAuthenticate={() => setView("profile")}
           />
         )}
         {view === "matches" && (
@@ -195,34 +233,26 @@ export function RoomSyncApp() {
             state={state}
             activeThread={activeThread}
             onSelectThread={setActiveThread}
-            onSend={(profileId, text) => {
-              updateState((current) => ({
-                ...current,
-                messages: [
-                  ...current.messages,
-                  {
-                    id: `${profileId}-${Date.now()}`,
-                    profileId,
-                    sender: "me",
-                    text,
-                    sentAt: new Date().toISOString(),
-                  },
-                ],
-              }));
-            }}
+            onSend={sendMessage}
             onFindMatches={() => setView("discover")}
           />
         )}
         {view === "profile" && (
-          <ProfileScreen
-            profile={state.user}
-            onEdit={() => setView("onboarding")}
-            swipesUsed={state.swipes.length}
-            matches={state.matches.length}
-          />
+          state.authenticated ? (
+            <ProfileScreen
+              profile={state.user}
+              authEmail={state.authEmail}
+              onEdit={() => setView("onboarding")}
+              onSignOut={handleSignOut}
+              swipesUsed={state.swipes.length}
+              matches={state.matches.length}
+            />
+          ) : (
+            <AuthScreen onAuthenticated={() => refreshState("onboarding")} />
+          )
         )}
       </main>
-      <BottomNav activeView={view} onNavigate={setView} onboarded={state.onboarded} />
+      <BottomNav activeView={view} onNavigate={setView} authenticated={state.authenticated} onboarded={state.onboarded} />
     </div>
   );
 }
@@ -230,13 +260,17 @@ export function RoomSyncApp() {
 function TopNav({
   activeView,
   onNavigate,
+  authenticated,
   onboarded,
-  onReset,
+  authEmail,
+  onSignOut,
 }: {
   activeView: View;
   onNavigate: (view: View) => void;
+  authenticated: boolean;
   onboarded: boolean;
-  onReset: () => void;
+  authEmail: string | null;
+  onSignOut: () => void;
 }) {
   return (
     <header className="sticky top-0 z-30 border-b border-slate-800 bg-slate-950/88 backdrop-blur-xl">
@@ -254,7 +288,7 @@ function TopNav({
         <nav className="hidden items-center gap-1 rounded-full border border-slate-800 bg-slate-900/70 p-1 md:flex">
           {navItems.map((item) => {
             const Icon = item.icon;
-            const disabled = item.view !== "home" && !onboarded && item.view !== "profile";
+            const disabled = item.view !== "home" && item.view !== "profile" && (!authenticated || !onboarded);
             return (
               <button
                 key={item.view}
@@ -271,13 +305,24 @@ function TopNav({
           })}
         </nav>
 
-        <button
-          className="hidden items-center gap-2 rounded-full border border-slate-800 px-3 py-2 text-sm text-slate-300 transition hover:border-slate-600 hover:text-white md:flex"
-          onClick={onReset}
-        >
-          <RotateCcw className="size-4" />
-          Reset demo
-        </button>
+        {authenticated ? (
+          <button
+            className="hidden items-center gap-2 rounded-full border border-slate-800 px-3 py-2 text-sm text-slate-300 transition hover:border-slate-600 hover:text-white md:flex"
+            onClick={onSignOut}
+            title={authEmail ?? "Signed in"}
+          >
+            <RotateCcw className="size-4" />
+            Sign out
+          </button>
+        ) : (
+          <button
+            className="hidden items-center gap-2 rounded-full border border-slate-800 px-3 py-2 text-sm text-slate-300 transition hover:border-slate-600 hover:text-white md:flex"
+            onClick={() => onNavigate("profile")}
+          >
+            <User className="size-4" />
+            Sign in
+          </button>
+        )}
       </div>
     </header>
   );
@@ -286,10 +331,12 @@ function TopNav({
 function BottomNav({
   activeView,
   onNavigate,
+  authenticated,
   onboarded,
 }: {
   activeView: View;
   onNavigate: (view: View) => void;
+  authenticated: boolean;
   onboarded: boolean;
 }) {
   return (
@@ -297,7 +344,7 @@ function BottomNav({
       <div className="mx-auto grid max-w-md grid-cols-5 gap-1">
         {navItems.map((item) => {
           const Icon = item.icon;
-          const disabled = item.view !== "home" && !onboarded && item.view !== "profile";
+          const disabled = item.view !== "home" && item.view !== "profile" && (!authenticated || !onboarded);
           return (
             <button
               key={item.view}
@@ -317,164 +364,588 @@ function BottomNav({
   );
 }
 
-function HomeScreen({ onStart }: { onStart: () => void }) {
-  const previewScore = getCompatibility(defaultUser, demoProfiles[0]).score;
+function HomeScreen({
+  authenticated,
+  onboarded,
+  onStart,
+  onNavigate,
+}: {
+  authenticated: boolean;
+  onboarded: boolean;
+  onStart: () => void;
+  onNavigate: (view: View) => void;
+}) {
+  const ctaLabel = authenticated ? (onboarded ? "Browse Matches" : "Create My Profile") : "Sign In";
+
+  function scrollToSection(id: string) {
+    document.getElementById(id)?.scrollIntoView({ behavior: "smooth", block: "start" });
+  }
 
   return (
-    <section className="grid min-h-[calc(100vh-6rem)] items-center gap-8 py-8 lg:grid-cols-[1.05fr_0.95fr]">
-      <div>
-        <div className="mb-5 inline-flex items-center gap-2 rounded-full border border-red-400/30 bg-red-500/10 px-4 py-2 text-sm text-red-100">
-          <Sparkles className="size-4 text-red-300" />
-          Built for incoming Rutgers international students
-        </div>
-        <h1 className="font-display max-w-3xl text-5xl font-black leading-[1.02] tracking-tight text-white sm:text-6xl lg:text-7xl">
-          Find a roommate before ISO gets busy.
-        </h1>
-        <p className="mt-5 max-w-2xl text-lg leading-8 text-slate-300">
-          RoomSync is a lifestyle-first roommate matcher for Rutgers ISO. Answer a few practical questions, swipe through compatible students, and message only after a mutual match.
-        </p>
-        <div className="mt-8 flex flex-col gap-3 sm:flex-row">
-          <button
-            className="inline-flex items-center justify-center gap-2 rounded-2xl bg-white px-6 py-4 font-bold text-slate-950 transition hover:-translate-y-0.5"
-            onClick={onStart}
-          >
-            Start matching
-            <ArrowRight className="size-5" />
-          </button>
-          <a
-            className="inline-flex items-center justify-center rounded-2xl border border-slate-700 px-6 py-4 font-bold text-slate-100 transition hover:border-slate-500"
-            href="mailto:mahek@example.com?subject=RoomSync%20feedback"
-          >
-            Send feedback to Mahek
-          </a>
-        </div>
-        <div className="mt-8 grid max-w-2xl grid-cols-3 gap-3">
-          {[
-            ["30", "swipes"],
-            ["12 hr", "reset"],
-            ["match", "to chat"],
-          ].map(([value, label]) => (
-            <div key={label} className="rounded-3xl border border-slate-800 bg-slate-900/70 p-4">
-              <div className="font-display text-2xl font-black text-white">{value}</div>
-              <div className="mt-1 text-sm text-slate-400">{label}</div>
-            </div>
-          ))}
-        </div>
-      </div>
+    <div className="min-h-screen bg-[#f7f7f8] text-[#17131b]">
+      <section id="home" className="relative min-h-screen overflow-hidden bg-[#3a223d] text-white">
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_42%,rgba(180,135,196,0.34),transparent_30rem),linear-gradient(180deg,rgba(120,91,127,0.72)_0%,rgba(58,34,61,0.96)_45%,rgba(49,31,53,1)_100%)]" />
+        <FloatingLandingCard className="-left-14 top-44 hidden rotate-[-8deg] lg:block" title="John Snow" subtitle="Class of '28" lines={["Computer Science Major", "Night owl - Clean freak - Gamer"]} />
+        <FloatingLandingCard className="-right-14 top-64 hidden rotate-[11deg] lg:block" title="92%" subtitle="Compatibility Match" lines={["Sleep Schedule 95%", "Cleanliness 88%", "Social Habits 93%"]} large />
+        <FloatingLandingCard className="bottom-16 left-24 hidden rotate-[6deg] xl:block" title="Housing Preferences" subtitle="On Campus" lines={["$800-1200/mo", "Private Room", "Move-in: Fall 2026"]} />
+        <FloatingLandingCard className="bottom-28 right-32 hidden rotate-[-7deg] xl:block" title="Sleep Schedule" subtitle="11 PM - 1 AM" lines={["Wake up 7 AM - 9 AM", "Quiet mornings", "Flexible weekends"]} />
 
-      <div className="rounded-[2rem] border border-slate-800 bg-slate-950/75 p-4 shadow-2xl shadow-black/30">
-        <div className="rounded-[1.5rem] bg-slate-900 p-4">
-          <div className="mb-4 flex items-center justify-between">
-            <div>
-              <div className="text-sm font-bold text-white">Today&apos;s top fit</div>
-              <div className="text-xs text-slate-400">Rutgers New Brunswick</div>
+        <div className="relative z-10">
+          <header className="border-b border-white/12 bg-white/8 backdrop-blur-xl">
+            <div className="mx-auto flex h-24 max-w-7xl items-center justify-between px-4 sm:px-8">
+              <button className="flex items-center gap-4" onClick={() => scrollToSection("home")} aria-label="RoomSync home">
+                <span className="grid size-14 place-items-center rounded-2xl bg-[#bb86ff] shadow-xl shadow-purple-950/30 sm:size-16">
+                  <Home className="size-8 text-white sm:size-9" />
+                </span>
+                <span className="font-display text-2xl font-semibold tracking-normal text-white sm:text-3xl">
+                  Room<span className="text-[#cba0ff]">Sync</span>
+                </span>
+              </button>
+
+              <nav className="hidden items-center gap-10 text-xl text-white/78 lg:flex">
+                <button className="transition hover:text-white" onClick={() => scrollToSection("home")}>Home</button>
+                <button className="transition hover:text-white" onClick={() => scrollToSection("how-it-works")}>How it Works</button>
+                <button className="transition hover:text-white" onClick={() => scrollToSection("about")}>About</button>
+                <button className="transition hover:text-white" onClick={() => scrollToSection("faqs")}>FAQs</button>
+              </nav>
+
+              <div className="flex items-center gap-3">
+                <button className="grid size-12 place-items-center rounded-2xl border border-white/18 bg-white/5 text-white shadow-sm sm:size-14" aria-label="Theme preview">
+                  <Moon className="size-6 sm:size-7" />
+                </button>
+                <button
+                  className="inline-flex items-center gap-2 rounded-2xl border border-white/18 bg-white/5 px-4 py-3 text-lg font-semibold text-white transition hover:bg-white/10 sm:gap-3 sm:px-5"
+                  onClick={() => onNavigate(authenticated ? "profile" : "profile")}
+                >
+                  <User className="size-6" />
+                  <span className="hidden sm:inline">{authenticated ? "Profile" : "Sign In"}</span>
+                </button>
+              </div>
             </div>
-            <span className="rounded-full bg-teal-300 px-3 py-1 text-sm font-black text-slate-950">{previewScore}%</span>
+          </header>
+
+          <div className="mx-auto flex min-h-[calc(100vh-6rem)] max-w-7xl flex-col items-center justify-center px-5 pb-20 pt-24 text-center sm:px-8">
+            <h1 className="font-display max-w-5xl text-6xl font-semibold leading-[1.05] tracking-normal text-white sm:text-7xl lg:text-8xl">
+              Find Your Perfect <span className="block text-[#b988ff] drop-shadow-[0_0_34px_rgba(185,136,255,0.34)]">Roommate</span>
+            </h1>
+            <p className="mt-8 max-w-3xl text-xl leading-9 text-white/78 sm:text-2xl">
+              RoomSync is the roommate-matching app built specifically for college students. Less anxiety, more compatibility, all in one place.
+            </p>
+            <button
+              className="mt-12 rounded-full bg-[#efc8ef] px-16 py-5 text-2xl font-semibold text-black shadow-[0_0_38px_rgba(239,200,239,0.42)] transition hover:-translate-y-0.5 hover:bg-[#f5d7f5]"
+              onClick={onStart}
+            >
+              {ctaLabel}
+            </button>
+
+            <div className="mt-16 grid w-full max-w-4xl gap-4 sm:grid-cols-3">
+              {[
+                ["100%", "Student Focused"],
+                ["3-Step", "Match Process"],
+                ["Fall 2026", "Launching"],
+              ].map(([value, label]) => (
+                <div key={label} className="rounded-3xl border border-white/28 bg-white/8 px-8 py-7 backdrop-blur-md">
+                  <div className="font-display text-3xl font-black text-white">{value}</div>
+                  <div className="mt-2 text-lg text-white/78">{label}</div>
+                </div>
+              ))}
+            </div>
           </div>
-          <ProfileCard profile={demoProfiles[0]} user={defaultUser} compact />
         </div>
+      </section>
+
+      <section id="about" className="px-5 py-24 sm:px-8">
+        <div className="mx-auto max-w-7xl text-center">
+          <h2 className="font-display text-5xl font-semibold tracking-normal">Why Choose RoomSync?</h2>
+          <p className="mx-auto mt-6 max-w-3xl text-2xl leading-10 text-black/65">
+            We built RoomSync so you never have to post in a random group chat again.
+          </p>
+          <div className="mt-20 grid gap-8 lg:grid-cols-3">
+            <LandingFeature icon={Shield} title="Verified Users" body="All users go through university email verification for safety and peace of mind." />
+            <LandingFeature icon={Search} title="Smart Matching" body="Our algorithm matches you with compatible roommates based on lifestyle and preferences." />
+            <LandingFeature icon={MessageCircle} title="Instant Messaging" body="Connect with potential roommates through secure messaging after a mutual match." />
+          </div>
+        </div>
+      </section>
+
+      <section id="how-it-works" className="px-5 py-24 sm:px-8">
+        <div className="mx-auto max-w-7xl text-center">
+          <h2 className="font-display text-5xl font-semibold tracking-normal">How It Works</h2>
+          <p className="mt-6 text-2xl text-black/65">Your Next Roommate Match Starts Here</p>
+          <div className="mt-20 grid gap-12 lg:grid-cols-3">
+            <LandingStep icon={UserPlus} title="Create Your Profile" body="Share your lifestyle, budget, and housing preferences in minutes." />
+            <LandingStep icon={Search} title="Browse & Match" body="Browse compatibility-ranked profiles. Like the ones that feel right." />
+            <LandingStep icon={MessageCircle} title="Connect & Chat" body="Chat, confirm details, and plan your next move with confidence." />
+          </div>
+        </div>
+      </section>
+
+      <section id="faqs" className="px-5 pb-28 pt-16 sm:px-8">
+        <div className="mx-auto max-w-4xl rounded-3xl bg-white p-8 shadow-sm">
+          <div className="flex items-center gap-3">
+            <span className="grid size-12 place-items-center rounded-2xl bg-[#efc8ef]">
+              <HelpCircle className="size-7 text-black" />
+            </span>
+            <h2 className="font-display text-4xl font-semibold">FAQs</h2>
+          </div>
+          <div className="mt-8 grid gap-5 text-lg text-black/68">
+            <p><span className="font-semibold text-black">Who can join?</span> RoomSync is starting with verified student email access.</p>
+            <p><span className="font-semibold text-black">When can I message?</span> Messaging unlocks only after a mutual match.</p>
+            <p><span className="font-semibold text-black">How many swipes do I get?</span> You get 30 swipes every 12 hours.</p>
+          </div>
+        </div>
+      </section>
+    </div>
+  );
+}
+
+function FloatingLandingCard({
+  className,
+  title,
+  subtitle,
+  lines,
+  large = false,
+}: {
+  className: string;
+  title: string;
+  subtitle: string;
+  lines: string[];
+  large?: boolean;
+}) {
+  return (
+    <div className={`pointer-events-none absolute z-0 rounded-3xl border border-white/10 bg-white/[0.045] p-7 text-white/20 backdrop-blur-sm ${large ? "w-96" : "w-80"} ${className}`}>
+      <div className={`font-display font-black ${large ? "text-7xl" : "text-3xl"}`}>{title}</div>
+      <div className="mt-2 text-xl">{subtitle}</div>
+      <div className="mt-7 space-y-3 text-lg">
+        {lines.map((line) => (
+          <div key={line}>{line}</div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function LandingFeature({ icon: Icon, title, body }: { icon: ComponentType<{ className?: string }>; title: string; body: string }) {
+  return (
+    <article className="rounded-3xl bg-white p-10 text-left shadow-sm">
+      <div className="grid size-20 place-items-center rounded-2xl bg-[#efc8ef]">
+        <Icon className="size-9 text-black" />
+      </div>
+      <h3 className="font-display mt-9 text-4xl font-semibold tracking-normal">{title}</h3>
+      <p className="mt-6 text-2xl leading-10 text-black/65">{body}</p>
+    </article>
+  );
+}
+
+function LandingStep({ icon: Icon, title, body }: { icon: ComponentType<{ className?: string }>; title: string; body: string }) {
+  return (
+    <article className="text-center">
+      <div className="mx-auto grid size-24 place-items-center rounded-3xl border border-black/10 bg-white">
+        <Icon className="size-12 text-black/78" />
+      </div>
+      <h3 className="font-display mt-8 text-3xl font-semibold tracking-normal">{title}</h3>
+      <p className="mx-auto mt-5 max-w-md text-xl leading-8 text-black/65">{body}</p>
+    </article>
+  );
+}
+
+function AuthScreen({ onAuthenticated }: { onAuthenticated: () => void }) {
+  const [email, setEmail] = useState("");
+  const [sent, setSent] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [submitting, setSubmitting] = useState(false);
+
+  async function requestOtp() {
+    const normalizedEmail = email.trim().toLowerCase();
+    setError(null);
+
+    if (!normalizedEmail.endsWith("@scarletmail.rutgers.edu")) {
+      setError(rutgersEmailMessage);
+      return;
+    }
+
+    setSubmitting(true);
+    const response = await fetch("/api/auth/otp", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email: normalizedEmail }),
+    });
+    const result = (await response.json()) as { error?: string };
+    setSubmitting(false);
+
+    if (!response.ok) {
+      setError(result.error ?? rutgersEmailMessage);
+      return;
+    }
+
+    setSent(true);
+  }
+
+  return (
+    <section className="mx-auto grid min-h-[60vh] max-w-2xl place-items-center py-8">
+      <div className="w-full rounded-[2rem] border border-slate-800 bg-slate-950/80 p-5 sm:p-7">
+        <p className="text-sm font-bold uppercase tracking-[0.2em] text-teal-200">Rutgers sign in</p>
+        <h2 className="font-display mt-2 text-3xl font-black text-white">Use your ScarletMail account.</h2>
+        <p className="mt-3 text-slate-300">
+          RoomSync sends a one-time email link and only accepts Rutgers ScarletMail addresses for this MVP.
+        </p>
+
+        {sent ? (
+          <div className="mt-6 rounded-3xl border border-teal-300/30 bg-teal-300/10 p-5">
+            <div className="font-black text-teal-100">Check your email</div>
+            <p className="mt-2 text-sm leading-6 text-slate-300">
+              We sent a sign-in link to {email.trim().toLowerCase()}. Open it in this browser, then RoomSync will bring you back to profile setup.
+            </p>
+            <button className="mt-4 rounded-2xl border border-slate-700 px-4 py-3 text-sm font-black text-white" onClick={onAuthenticated}>
+              I opened the link
+            </button>
+          </div>
+        ) : (
+          <form
+            className="mt-6 space-y-4"
+            onSubmit={(event) => {
+              event.preventDefault();
+              void requestOtp();
+            }}
+          >
+            <Field label="Rutgers email">
+              <input
+                className={textInput}
+                type="email"
+                value={email}
+                onChange={(event) => setEmail(event.target.value)}
+                placeholder="netid@scarletmail.rutgers.edu"
+              />
+            </Field>
+            {error && <p className="rounded-2xl border border-red-400/30 bg-red-500/10 px-4 py-3 text-sm text-red-100">{error}</p>}
+            <button
+              className="inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-white px-6 py-4 font-black text-slate-950 transition hover:-translate-y-0.5 disabled:opacity-60"
+              disabled={submitting}
+            >
+              {submitting ? "Sending link..." : "Send one-time link"}
+              <ArrowRight className="size-5" />
+            </button>
+          </form>
+        )}
       </div>
     </section>
   );
 }
 
+function scoreToCleanliness(score: number): Cleanliness {
+  if (score < 34) return "relaxed";
+  if (score < 67) return "moderate";
+  return "very-clean";
+}
+
+function scoreToNoise(score: number): NoiseTolerance {
+  if (score < 34) return "low";
+  if (score < 67) return "medium";
+  return "high";
+}
+
+function scoreToGuests(score: number): GuestFrequency {
+  if (score < 34) return "rarely";
+  if (score < 67) return "sometimes";
+  return "often";
+}
+
+function scoreLabel(score: number, labels: [string, string, string]) {
+  if (score < 34) return labels[0];
+  if (score < 67) return labels[1];
+  return labels[2];
+}
+
+function ProfileFormSection({ title, description, children }: { title: string; description: string; children: ReactNode }) {
+  return (
+    <section className="space-y-6 rounded-3xl border border-white/10 bg-black/40 p-5 backdrop-blur-sm sm:p-8">
+      <div>
+        <h2 className="font-display text-3xl font-semibold tracking-normal text-white">{title}</h2>
+        <p className="mt-3 text-lg text-white/50">{description}</p>
+      </div>
+      <div className="space-y-5">{children}</div>
+    </section>
+  );
+}
+
+function ProfileField({ label, children }: { label: string; children: ReactNode }) {
+  return (
+    <label className="block">
+      <span className="mb-2 block text-sm font-semibold text-white/85">{label}</span>
+      {children}
+    </label>
+  );
+}
+
+function PreferenceSlider({
+  label,
+  value,
+  valueLabel,
+  onChange,
+}: {
+  label: string;
+  value: number;
+  valueLabel: string;
+  onChange: (value: number) => void;
+}) {
+  return (
+    <div>
+      <div className="mb-3 flex items-center justify-between gap-4">
+        <label className="text-sm font-semibold text-white/85">{label}</label>
+        <span className="text-sm text-purple-300">{valueLabel}</span>
+      </div>
+      <input
+        type="range"
+        min="0"
+        max="100"
+        value={value}
+        onChange={(event) => onChange(Number(event.target.value))}
+        className="h-2 w-full cursor-pointer appearance-none rounded-lg bg-white/10 accent-purple-400 [&::-webkit-slider-thumb]:size-4 [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-white [&::-webkit-slider-thumb]:shadow-[0_0_12px_rgba(255,255,255,0.65)]"
+      />
+    </div>
+  );
+}
+
 function OnboardingScreen({
   initialProfile,
+  authEmail,
   onComplete,
 }: {
   initialProfile: UserProfile;
+  authEmail: string | null;
   onComplete: (profile: UserProfile) => void;
 }) {
   const [profile, setProfile] = useState<UserProfile>(initialProfile);
+  const [customInterest, setCustomInterest] = useState("");
+  const quickAddInterests = ["Gaming", "Cooking", "Fitness", "Reading", "Music", "Art", "Hiking", "Travel", "Photography", "Sports", "Coding", "Yoga"];
 
   function update<K extends keyof UserProfile>(key: K, value: UserProfile[K]) {
     setProfile((current) => ({ ...current, [key]: value }));
   }
 
+  function updateCleanliness(score: number) {
+    setProfile((current) => ({ ...current, cleanlinessScore: score, cleanliness: scoreToCleanliness(score) }));
+  }
+
+  function updateNoise(score: number) {
+    setProfile((current) => ({ ...current, noiseToleranceScore: score, noise: scoreToNoise(score) }));
+  }
+
+  function updateGuests(score: number) {
+    setProfile((current) => ({ ...current, guestsFrequencyScore: score, guests: scoreToGuests(score) }));
+  }
+
+  function toggleInterest(interest: string) {
+    setProfile((current) => ({
+      ...current,
+      interests: current.interests.includes(interest)
+        ? current.interests.filter((item) => item !== interest)
+        : [...current.interests, interest],
+    }));
+  }
+
+  function addCustomInterest() {
+    const nextInterest = customInterest.trim();
+    if (!nextInterest || profile.interests.includes(nextInterest)) {
+      return;
+    }
+    setProfile((current) => ({ ...current, interests: [...current.interests, nextInterest] }));
+    setCustomInterest("");
+  }
+
   return (
-    <section className="mx-auto max-w-4xl py-4">
-      <div className="mb-6">
-        <p className="text-sm font-bold uppercase tracking-[0.2em] text-teal-200">Profile setup</p>
-        <h2 className="font-display mt-2 text-3xl font-black text-white sm:text-5xl">Answer the questions RoomSync matches on.</h2>
-        <p className="mt-3 max-w-2xl text-slate-300">
-          Keep it practical: sleep, guests, studying, budget, and campus fit matter more than a perfect bio.
-        </p>
+    <section className="mx-auto max-w-5xl py-8">
+      <div className="mb-10 text-center">
+        <div className="mb-5 inline-flex items-center gap-2 rounded-full border border-purple-500/40 bg-purple-500/15 px-5 py-3 text-sm font-semibold text-purple-200">
+          <ShieldCheck className="size-5" />
+          Verified with university email
+        </div>
+        <h1 className="font-display text-5xl font-semibold tracking-normal text-white">My Profile</h1>
+        <p className="mt-5 text-xl text-slate-400">Tell us about yourself so we can find your perfect roommate match.</p>
       </div>
 
-      <div className="grid gap-4 rounded-[2rem] border border-slate-800 bg-slate-950/70 p-4 sm:p-6">
-        <div className="grid gap-4 sm:grid-cols-2">
-          <Field label="Name">
-            <input className={textInput} value={profile.name} onChange={(event) => update("name", event.target.value)} />
-          </Field>
-          <Field label="Pronouns">
-            <input className={textInput} value={profile.pronouns} onChange={(event) => update("pronouns", event.target.value)} />
-          </Field>
-          <Field label="Country or background">
-            <input className={textInput} value={profile.country} onChange={(event) => update("country", event.target.value)} />
-          </Field>
-          <Field label="Major">
-            <input className={textInput} value={profile.major} onChange={(event) => update("major", event.target.value)} />
-          </Field>
-        </div>
+      <form
+        className="space-y-8"
+        onSubmit={(event) => {
+          event.preventDefault();
+          onComplete(profile);
+        }}
+      >
+        <ProfileFormSection title="Basic Information" description="Your public profile info shown to other students">
+          <div className="grid gap-5 sm:grid-cols-2">
+            <ProfileField label="Full Name *">
+              <input className={profileInput} required value={profile.name} onChange={(event) => update("name", event.target.value)} placeholder="Your name" />
+            </ProfileField>
+            <ProfileField label="Age *">
+              <input className={profileInput} required type="number" min={16} max={100} value={profile.age ?? ""} onChange={(event) => update("age", event.target.value ? Number(event.target.value) : null)} placeholder="18" />
+            </ProfileField>
+          </div>
 
-        <Field label="Short bio">
-          <textarea className={`${textInput} min-h-24 resize-none`} value={profile.bio} onChange={(event) => update("bio", event.target.value)} />
-        </Field>
+          <ProfileField label="University *">
+            <input className={profileInput} required value={profile.university} onChange={(event) => update("university", event.target.value)} />
+          </ProfileField>
 
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          <Field label="Sleep schedule">
-            <Select value={profile.sleep} onChange={(value) => update("sleep", value as SleepSchedule)} options={sleepLabels} />
-          </Field>
-          <Field label="Cleanliness">
-            <Select value={profile.cleanliness} onChange={(value) => update("cleanliness", value as Cleanliness)} options={cleanlinessLabels} />
-          </Field>
-          <Field label="Study style">
-            <Select value={profile.study} onChange={(value) => update("study", value as StudyHabit)} options={studyLabels} />
-          </Field>
-          <Field label="Guests">
-            <Select value={profile.guests} onChange={(value) => update("guests", value as GuestFrequency)} options={guestLabels} />
-          </Field>
-          <Field label="Noise">
-            <Select value={profile.noise} onChange={(value) => update("noise", value as NoiseTolerance)} options={noiseLabels} />
-          </Field>
-          <Field label="Housing">
-            <Select value={profile.housing} onChange={(value) => update("housing", value as HousingType)} options={housingLabels} />
-          </Field>
-          <Field label="Campus">
-            <Select value={profile.campus} onChange={(value) => update("campus", value as Campus)} options={campusLabels} />
-          </Field>
-          <Field label="Budget min">
-            <input className={textInput} type="number" value={profile.budgetMin} onChange={(event) => update("budgetMin", Number(event.target.value))} />
-          </Field>
-          <Field label="Budget max">
-            <input className={textInput} type="number" value={profile.budgetMax} onChange={(event) => update("budgetMax", Number(event.target.value))} />
-          </Field>
-        </div>
+          <div className="grid gap-5 sm:grid-cols-2">
+            <ProfileField label="Major *">
+              <input className={profileInput} required value={profile.major} onChange={(event) => update("major", event.target.value)} placeholder="e.g. Computer Science" />
+            </ProfileField>
+            <ProfileField label="Year *">
+              <select className={profileInput} value={profile.year} onChange={(event) => update("year", event.target.value)}>
+                {["Freshman", "Sophomore", "Junior", "Senior", "Graduate", "Transfer"].map((year) => (
+                  <option key={year}>{year}</option>
+                ))}
+              </select>
+            </ProfileField>
+          </div>
 
-        <Field label="Interests, separated by commas">
-          <input
-            className={textInput}
-            value={profile.interests.join(", ")}
-            onChange={(event) =>
-              update(
-                "interests",
-                event.target.value
-                  .split(",")
-                  .map((interest) => interest.trim())
-                  .filter(Boolean),
-              )
-            }
-          />
-        </Field>
+          <div className="grid gap-5 sm:grid-cols-2">
+            <ProfileField label="Pronouns">
+              <input className={profileInput} value={profile.pronouns} onChange={(event) => update("pronouns", event.target.value)} placeholder="they/them" />
+            </ProfileField>
+            <ProfileField label="Country or background">
+              <input className={profileInput} value={profile.country} onChange={(event) => update("country", event.target.value)} placeholder="International student" />
+            </ProfileField>
+          </div>
 
-        <button
-          className="mt-2 inline-flex items-center justify-center gap-2 rounded-2xl bg-white px-6 py-4 font-black text-slate-950 transition hover:-translate-y-0.5"
-          onClick={() => onComplete(profile)}
-        >
-          Save profile and discover roommates
-          <ArrowRight className="size-5" />
+          <ProfileField label="University Email *">
+            <input className={`${profileInput} text-white/70`} type="email" value={authEmail ?? ""} readOnly placeholder="your.name@university.edu" />
+            <p className="mt-2 flex items-center gap-2 text-xs text-white/45"><ShieldCheck className="size-4" /> Used for verification only, not shown publicly</p>
+          </ProfileField>
+
+          <ProfileField label="Bio *">
+            <textarea
+              className={`${profileInput} min-h-36 resize-none`}
+              required
+              maxLength={500}
+              value={profile.bio}
+              onChange={(event) => update("bio", event.target.value)}
+              placeholder="Tell potential roommates about yourself, your habits, what you're looking for..."
+            />
+            <p className="mt-2 text-right text-xs text-white/45">{profile.bio.length}/500</p>
+          </ProfileField>
+        </ProfileFormSection>
+
+        <ProfileFormSection title="Budget & Housing" description="What type of housing are you looking for?">
+          <div className="grid gap-5 sm:grid-cols-2">
+            <ProfileField label="Budget Min ($/mo)">
+              <input className={profileInput} type="number" value={profile.budgetMin} onChange={(event) => update("budgetMin", Number(event.target.value))} />
+            </ProfileField>
+            <ProfileField label="Budget Max ($/mo)">
+              <input className={profileInput} type="number" value={profile.budgetMax} onChange={(event) => update("budgetMax", Number(event.target.value))} />
+            </ProfileField>
+          </div>
+
+          <div className="grid gap-5 sm:grid-cols-2">
+            <ProfileField label="Preferred Housing Type">
+              <select className={profileInput} value={profile.housing} onChange={(event) => update("housing", event.target.value as HousingType)}>
+                <option value="either">Open to Any</option>
+                <option value="apartment">Apartment</option>
+                <option value="dorm">Dorm</option>
+              </select>
+            </ProfileField>
+            <ProfileField label="Preferred Campus">
+              <select className={profileInput} value={profile.campus} onChange={(event) => update("campus", event.target.value as Campus)}>
+                {Object.entries(campusLabels).map(([value, label]) => (
+                  <option key={value} value={value}>{label}</option>
+                ))}
+              </select>
+            </ProfileField>
+          </div>
+        </ProfileFormSection>
+
+        <ProfileFormSection title="Living Preferences" description="These power your compatibility score - be honest!">
+          <PreferenceSlider label="Cleanliness" value={profile.cleanlinessScore} valueLabel={scoreLabel(profile.cleanlinessScore, ["Relaxed", "Moderately tidy", "Very tidy"])} onChange={updateCleanliness} />
+
+          <ProfileField label="Sleep Schedule">
+            <select className={profileInput} value={profile.sleep} onChange={(event) => update("sleep", event.target.value as SleepSchedule)}>
+              <option value="balanced">Flexible</option>
+              <option value="early">Early Bird (before 10pm)</option>
+              <option value="late">Night Owl (after midnight)</option>
+            </select>
+          </ProfileField>
+
+          <ProfileField label="Study Habits">
+            <select className={profileInput} value={profile.study} onChange={(event) => update("study", event.target.value as StudyHabit)}>
+              <option value="library">Moderate (some background noise okay)</option>
+              <option value="quiet-room">Quiet (need silence to focus)</option>
+              <option value="social-study">Flexible (can study anywhere)</option>
+            </select>
+          </ProfileField>
+
+          <PreferenceSlider label="Noise Tolerance" value={profile.noiseToleranceScore} valueLabel={scoreLabel(profile.noiseToleranceScore, ["Low noise", "Some noise okay", "Noise is fine"])} onChange={updateNoise} />
+          <PreferenceSlider label="Guests Frequency" value={profile.guestsFrequencyScore} valueLabel={scoreLabel(profile.guestsFrequencyScore, ["Rarely", "Sometimes", "Very often"])} onChange={updateGuests} />
+
+          <ProfileField label="Temperature Preference">
+            <select className={profileInput} value={profile.temperaturePreference} onChange={(event) => update("temperaturePreference", event.target.value)}>
+              {["Flexible", "Warm", "Cool", "Very Warm", "Very Cool"].map((temperature) => (
+                <option key={temperature}>{temperature}</option>
+              ))}
+            </select>
+          </ProfileField>
+
+          <button
+            type="button"
+            className="flex w-full items-center justify-between rounded-xl border border-white/10 bg-white/5 px-4 py-4 text-left"
+            onClick={() => update("willingToShare", !profile.willingToShare)}
+          >
+            <span>
+              <span className="block text-sm font-semibold text-white">Willing to Share Items</span>
+              <span className="mt-1 block text-xs text-white/50">Food, essentials, household supplies</span>
+            </span>
+            <span className={`relative h-7 w-14 rounded-full transition ${profile.willingToShare ? "bg-purple-400" : "bg-white/20"}`}>
+              <span className={`absolute left-1 top-1 size-5 rounded-full bg-white transition ${profile.willingToShare ? "translate-x-7" : "translate-x-0"}`} />
+            </span>
+          </button>
+        </ProfileFormSection>
+
+        <ProfileFormSection title="Interests & Hobbies" description="Shared interests increase your compatibility score">
+          <div className="flex flex-col gap-3 sm:flex-row">
+            <input
+              className={`${profileInput} flex-1`}
+              value={customInterest}
+              onChange={(event) => setCustomInterest(event.target.value)}
+              placeholder="Add a custom interest..."
+            />
+            <button type="button" className="inline-flex items-center justify-center gap-2 rounded-xl bg-white/10 px-6 py-3 text-white transition hover:bg-white/20" onClick={addCustomInterest}>
+              <Plus className="size-4" />
+              Add
+            </button>
+          </div>
+
+          <div>
+            <p className="mb-3 text-xs text-white/50">Quick add</p>
+            <div className="flex flex-wrap gap-2">
+              {quickAddInterests.map((interest) => (
+                <button
+                  key={interest}
+                  type="button"
+                  onClick={() => toggleInterest(interest)}
+                  className={`rounded-full px-4 py-2 text-sm transition ${
+                    profile.interests.includes(interest) ? "bg-purple-500 text-white" : "bg-white/10 text-white/70 hover:bg-white/20"
+                  }`}
+                >
+                  + {interest}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {profile.interests.length > 0 && (
+            <div className="flex flex-wrap gap-2">
+              {profile.interests.map((interest) => (
+                <button key={interest} type="button" className="rounded-full border border-white/10 bg-white/5 px-4 py-2 text-sm text-white/80" onClick={() => toggleInterest(interest)}>
+                  {interest} x
+                </button>
+              ))}
+            </div>
+          )}
+        </ProfileFormSection>
+
+        <button className="w-full rounded-full bg-white py-5 text-lg font-semibold text-black transition hover:-translate-y-0.5 hover:bg-gray-100">
+          Save Profile & Find My Roommate <ArrowRight className="ml-2 inline size-5" />
         </button>
-      </div>
+        <p className="text-center text-xs text-white/40">All info protected by our privacy policy</p>
+      </form>
     </section>
   );
 }
@@ -484,15 +955,29 @@ function DiscoverScreen({
   onSwipe,
   onCompleteProfile,
   onViewMatches,
+  onAuthenticate,
 }: {
   state: AppState;
   onSwipe: (profile: RoommateProfile, decision: "like" | "pass") => void;
   onCompleteProfile: () => void;
   onViewMatches: () => void;
+  onAuthenticate: () => void;
 }) {
   const profile = getNextProfile(state);
   const remaining = getRemainingSwipes(state);
   const resetMinutes = minutesUntilReset(state);
+
+  if (!state.authenticated) {
+    return (
+      <EmptyState
+        icon={Lock}
+        title="Sign in to discover"
+        body="RoomSync needs a Rutgers ScarletMail session before showing real roommate data."
+        actionLabel="Sign in"
+        onAction={onAuthenticate}
+      />
+    );
+  }
 
   if (!state.onboarded) {
     return (
@@ -550,8 +1035,8 @@ function DiscoverScreen({
         ) : (
           <EmptyState
             icon={Check}
-            title="You reviewed every demo profile"
-            body="The prototype queue is complete. Check your matches or reset the demo from the desktop header."
+            title="You reviewed every available profile"
+            body="Check your matches now. New real profiles will appear here as more Rutgers students join."
             actionLabel="View matches"
             onAction={onViewMatches}
           />
@@ -633,7 +1118,7 @@ function MatchesScreen({
   onOpenThread: (profileId: string) => void;
   onDiscover: () => void;
 }) {
-  const matches = demoProfiles.filter((profile) => state.matches.includes(profile.id));
+  const matches = state.profiles.filter((profile) => state.matches.includes(profile.id));
 
   if (matches.length === 0) {
     return (
@@ -696,7 +1181,7 @@ function MessagesScreen({
   onSend: (profileId: string, text: string) => void;
   onFindMatches: () => void;
 }) {
-  const matches = demoProfiles.filter((profile) => state.matches.includes(profile.id));
+  const matches = state.profiles.filter((profile) => state.matches.includes(profile.id));
   const selected = matches.find((profile) => profile.id === activeThread) ?? matches[0] ?? null;
   const [draft, setDraft] = useState("");
 
@@ -795,12 +1280,16 @@ function MessagesScreen({
 
 function ProfileScreen({
   profile,
+  authEmail,
   onEdit,
+  onSignOut,
   swipesUsed,
   matches,
 }: {
   profile: UserProfile;
+  authEmail: string | null;
   onEdit: () => void;
+  onSignOut: () => void;
   swipesUsed: number;
   matches: number;
 }) {
@@ -815,12 +1304,19 @@ function ProfileScreen({
             <div>
               <h2 className="font-display text-3xl font-black text-white">{profile.name}</h2>
               <p className="mt-1 text-slate-400">{profile.pronouns} · {profile.major} · {profile.country}</p>
+              {authEmail && <p className="mt-1 text-sm text-teal-200">{authEmail}</p>}
             </div>
           </div>
-          <button className="inline-flex items-center justify-center gap-2 rounded-2xl bg-white px-5 py-3 font-black text-slate-950" onClick={onEdit}>
-            <Settings className="size-4" />
-            Edit answers
-          </button>
+          <div className="flex flex-col gap-2 sm:flex-row">
+            <button className="inline-flex items-center justify-center gap-2 rounded-2xl bg-white px-5 py-3 font-black text-slate-950" onClick={onEdit}>
+              <Settings className="size-4" />
+              Edit answers
+            </button>
+            <button className="inline-flex items-center justify-center gap-2 rounded-2xl border border-slate-700 px-5 py-3 font-black text-slate-100" onClick={onSignOut}>
+              <RotateCcw className="size-4" />
+              Sign out
+            </button>
+          </div>
         </div>
         <p className="mt-6 max-w-2xl text-slate-300">{profile.bio}</p>
         <div className="mt-6 grid gap-3 sm:grid-cols-3">
@@ -848,26 +1344,6 @@ function Field({ label, children }: { label: string; children: ReactNode }) {
       <span className="mb-2 block text-sm font-bold text-slate-300">{label}</span>
       {children}
     </label>
-  );
-}
-
-function Select<T extends string>({
-  value,
-  onChange,
-  options,
-}: {
-  value: T;
-  onChange: (value: T) => void;
-  options: Record<T, string>;
-}) {
-  return (
-    <select className={selectInput} value={value} onChange={(event) => onChange(event.target.value as T)}>
-      {Object.entries(options).map(([key, label]) => (
-        <option key={key} value={key}>
-          {label as string}
-        </option>
-      ))}
-    </select>
   );
 }
 
