@@ -8,6 +8,7 @@ import {
   HelpCircle,
   Home,
   Lock,
+  Menu,
   MessageCircle,
   Moon,
   Plus,
@@ -17,6 +18,7 @@ import {
   Settings,
   Shield,
   ShieldCheck,
+  Sun,
   User,
   UserPlus,
   Users,
@@ -375,6 +377,9 @@ function HomeScreen({
   onStart: () => void;
   onNavigate: (view: View) => void;
 }) {
+  const [isDarkMode, setIsDarkMode] = useState(true);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+
   const ctaLabel = authenticated ? (onboarded ? "Browse Matches" : "Create My Profile") : "Sign In";
 
   function scrollToSection(id: string) {
@@ -382,170 +387,371 @@ function HomeScreen({
   }
 
   return (
-    <div className="min-h-screen bg-[#f7f7f8] text-[#17131b]">
-      <section id="home" className="relative min-h-screen overflow-hidden bg-[#3a223d] text-white">
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_42%,rgba(180,135,196,0.34),transparent_30rem),linear-gradient(180deg,rgba(120,91,127,0.72)_0%,rgba(58,34,61,0.96)_45%,rgba(49,31,53,1)_100%)]" />
-        <FloatingLandingCard className="-left-14 top-44 hidden rotate-[-8deg] lg:block" title="John Snow" subtitle="Class of '28" lines={["Computer Science Major", "Night owl - Clean freak - Gamer"]} />
-        <FloatingLandingCard className="-right-14 top-64 hidden rotate-[11deg] lg:block" title="92%" subtitle="Compatibility Match" lines={["Sleep Schedule 95%", "Cleanliness 88%", "Social Habits 93%"]} large />
-        <FloatingLandingCard className="bottom-16 left-24 hidden rotate-[6deg] xl:block" title="Housing Preferences" subtitle="On Campus" lines={["$800-1200/mo", "Private Room", "Move-in: Fall 2026"]} />
-        <FloatingLandingCard className="bottom-28 right-32 hidden rotate-[-7deg] xl:block" title="Sleep Schedule" subtitle="11 PM - 1 AM" lines={["Wake up 7 AM - 9 AM", "Quiet mornings", "Flexible weekends"]} />
+    <div className={`min-h-screen transition-colors duration-300 ${isDarkMode ? "dark bg-neutral-900 text-white" : "bg-white text-neutral-900"}`}>
+      {/* Styles for keyframe animations */}
+      <style>{`
+        @keyframes gradientShift {
+          0% { background-position: 0% 50%; }
+          50% { background-position: 100% 50%; }
+          100% { background-position: 0% 50%; }
+        }
 
-        <div className="relative z-10">
-          <header className="border-b border-white/12 bg-white/8 backdrop-blur-xl">
-            <div className="mx-auto flex h-24 max-w-7xl items-center justify-between px-4 sm:px-8">
-              <button className="flex items-center gap-4" onClick={() => scrollToSection("home")} aria-label="RoomSync home">
-                <span className="grid size-14 place-items-center rounded-2xl bg-[#bb86ff] shadow-xl shadow-purple-950/30 sm:size-16">
-                  <Home className="size-8 text-white sm:size-9" />
-                </span>
-                <span className="font-display text-2xl font-semibold tracking-normal text-white sm:text-3xl">
-                  Room<span className="text-[#cba0ff]">Sync</span>
-                </span>
+        @keyframes fadeUp {
+          from {
+            opacity: 0;
+            transform: translateY(20px);
+          }
+          to {
+            opacity: 1;
+            transform: translateY(0);
+          }
+        }
+      `}</style>
+
+      {/* Header */}
+      <header className="border-b border-black/10 dark:border-white/10 sticky top-0 z-50 backdrop-blur-md bg-white/80 dark:bg-[#443143]/80">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex justify-between items-center h-16">
+            <button className="flex items-center gap-2 text-left" onClick={() => scrollToSection("home")}>
+              <div className="w-10 h-10 rounded-lg flex items-center justify-center bg-gradient-to-br from-purple-400 to-fuchsia-300">
+                <Home className="w-6 h-6 text-white" />
+              </div>
+              <span className="font-bold text-xl text-neutral-900 dark:text-white">
+                Room<span className="text-purple-500 dark:text-purple-300">Sync</span>
+              </span>
+            </button>
+            <nav className="hidden md:flex items-center gap-8 font-medium">
+              <button onClick={() => scrollToSection("home")} className="text-neutral-600 dark:text-white/80 hover:text-neutral-900 dark:hover:text-white transition-colors">Home</button>
+              <button onClick={() => scrollToSection("how-it-works")} className="text-neutral-600 dark:text-white/80 hover:text-neutral-900 dark:hover:text-white transition-colors">How it Works</button>
+              <button onClick={() => scrollToSection("about")} className="text-neutral-600 dark:text-white/80 hover:text-neutral-900 dark:hover:text-white transition-colors">About</button>
+              <button onClick={() => scrollToSection("faqs")} className="text-neutral-600 dark:text-white/80 hover:text-neutral-900 dark:hover:text-white transition-colors">FAQs</button>
+            </nav>
+            <div className="flex items-center gap-3">
+              <button 
+                className="p-2 rounded-lg bg-black/5 dark:bg-white/10 text-neutral-700 dark:text-white hover:bg-black/10 dark:hover:bg-white/20 transition-colors backdrop-blur-sm border border-black/10 dark:border-white/20" 
+                aria-label="Toggle dark mode"
+                onClick={() => setIsDarkMode(!isDarkMode)}
+              >
+                {isDarkMode ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
               </button>
+              <button 
+                className="hidden sm:flex items-center gap-2 px-4 py-2 rounded-lg bg-black/5 dark:bg-white/10 text-neutral-700 dark:text-white hover:bg-black/10 dark:hover:bg-white/20 transition-colors backdrop-blur-sm border border-black/10 dark:border-white/20"
+                onClick={() => onNavigate("profile")}
+              >
+                <User className="w-5 h-5" />
+                <span>{authenticated ? "Profile" : "Sign In"}</span>
+              </button>
+              <button 
+                className="md:hidden p-2 text-neutral-700 dark:text-white"
+                onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+                aria-label="Toggle menu"
+              >
+                <Menu className="w-6 h-6" />
+              </button>
+            </div>
+          </div>
+        </div>
+      </header>
 
-              <nav className="hidden items-center gap-10 text-xl text-white/78 lg:flex">
-                <button className="transition hover:text-white" onClick={() => scrollToSection("home")}>Home</button>
-                <button className="transition hover:text-white" onClick={() => scrollToSection("how-it-works")}>How it Works</button>
-                <button className="transition hover:text-white" onClick={() => scrollToSection("about")}>About</button>
-                <button className="transition hover:text-white" onClick={() => scrollToSection("faqs")}>FAQs</button>
-              </nav>
+      {/* Mobile Menu */}
+      {mobileMenuOpen && (
+        <div className="absolute top-16 left-0 right-0 z-40 bg-white dark:bg-[#443143] border-b border-black/10 dark:border-white/10 px-4 py-4 space-y-3 flex flex-col md:hidden text-neutral-700 dark:text-white/90 shadow-lg">
+          <button className="text-left py-2 hover:text-neutral-900 dark:hover:text-white" onClick={() => { scrollToSection("home"); setMobileMenuOpen(false); }}>Home</button>
+          <button className="text-left py-2 hover:text-neutral-900 dark:hover:text-white" onClick={() => { scrollToSection("how-it-works"); setMobileMenuOpen(false); }}>How it Works</button>
+          <button className="text-left py-2 hover:text-neutral-900 dark:hover:text-white" onClick={() => { scrollToSection("about"); setMobileMenuOpen(false); }}>About</button>
+          <button className="text-left py-2 hover:text-neutral-900 dark:hover:text-white" onClick={() => { scrollToSection("faqs"); setMobileMenuOpen(false); }}>FAQs</button>
+          <button 
+            className="flex items-center gap-2 py-2 text-left hover:text-neutral-900 dark:hover:text-white border-t border-black/5 dark:border-white/10 pt-3"
+            onClick={() => { onNavigate("profile"); setMobileMenuOpen(false); }}
+          >
+            <User className="w-5 h-5" />
+            <span>{authenticated ? "Profile" : "Sign In"}</span>
+          </button>
+        </div>
+      )}
 
-              <div className="flex items-center gap-3">
-                <button className="grid size-12 place-items-center rounded-2xl border border-white/18 bg-white/5 text-white shadow-sm sm:size-14" aria-label="Theme preview">
-                  <Moon className="size-6 sm:size-7" />
-                </button>
-                <button
-                  className="inline-flex items-center gap-2 rounded-2xl border border-white/18 bg-white/5 px-4 py-3 text-lg font-semibold text-white transition hover:bg-white/10 sm:gap-3 sm:px-5"
-                  onClick={() => onNavigate(authenticated ? "profile" : "profile")}
-                >
-                  <User className="size-6" />
-                  <span className="hidden sm:inline">{authenticated ? "Profile" : "Sign In"}</span>
-                </button>
+      {/* Hero Section */}
+      <section id="home" className="py-32 min-h-screen flex items-center relative overflow-hidden bg-[#443143] text-white">
+        {/* Noise overlay */}
+        <div className="absolute inset-0 pointer-events-none opacity-[0.03]" style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 400 400' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E")`, mixBlendMode: "overlay" }}></div>
+        
+        {/* Floating Cards (Background decoration) */}
+        <div className="absolute inset-0 pointer-events-none">
+          {/* Card 1: John Snow */}
+          <div className="absolute top-20 left-10 opacity-10 transform rotate-[-8deg] pointer-events-none hidden lg:block">
+            <div className="bg-white/20 backdrop-blur-md rounded-2xl p-6 border border-white/30 w-72 shadow-2xl">
+              <div className="flex items-center gap-3 mb-4">
+                <div className="w-14 h-14 rounded-full bg-gradient-to-br from-purple-400 to-pink-400 border-2 border-white/50 flex items-center justify-center text-white font-bold text-xl">JS</div>
+                <div>
+                  <div className="text-white font-semibold text-lg">John Snow</div>
+                  <div className="text-white/70 text-sm">Class of '28</div>
+                </div>
+              </div>
+              <div className="space-y-2 mb-4 text-white/60 text-sm">
+                <p>Computer Science Major</p>
+                <p>Night owl • Clean freak • Gamer</p>
+              </div>
+              <div className="flex gap-2">
+                <div className="px-3 py-1 bg-white/30 rounded-full text-white text-xs">🎮 Gaming</div>
+                <div className="px-3 py-1 bg-white/30 rounded-full text-white text-xs">📚 Studying</div>
               </div>
             </div>
-          </header>
+          </div>
 
-          <div className="mx-auto flex min-h-[calc(100vh-6rem)] max-w-7xl flex-col items-center justify-center px-5 pb-20 pt-24 text-center sm:px-8">
-            <h1 className="font-display max-w-5xl text-6xl font-semibold leading-[1.05] tracking-normal text-white sm:text-7xl lg:text-8xl">
-              Find Your Perfect <span className="block text-[#b988ff] drop-shadow-[0_0_34px_rgba(185,136,255,0.34)]">Roommate</span>
+          {/* Card 2: Compatibility Match */}
+          <div className="absolute top-40 right-16 opacity-10 transform rotate-[12deg] pointer-events-none hidden lg:block">
+            <div className="bg-white/20 backdrop-blur-md rounded-2xl p-8 border border-white/30 w-64 shadow-2xl">
+              <div className="text-center">
+                <div className="text-6xl font-bold mb-3 text-white">92%</div>
+                <div className="text-white font-semibold mb-4">Compatibility Match</div>
+                <div className="space-y-3 text-left">
+                  <div className="flex justify-between text-white/70 text-sm"><span>Sleep Schedule</span><span className="text-white font-semibold">95%</span></div>
+                  <div className="flex justify-between text-white/70 text-sm"><span>Cleanliness</span><span className="text-white font-semibold">88%</span></div>
+                  <div className="flex justify-between text-white/70 text-sm"><span>Social Habits</span><span className="text-white font-semibold">93%</span></div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Card 3: Housing Preferences */}
+          <div className="absolute bottom-32 left-20 opacity-10 transform rotate-[6deg] pointer-events-none hidden xl:block">
+            <div className="bg-white/20 backdrop-blur-md rounded-2xl p-6 border border-white/30 w-72 shadow-2xl">
+              <div className="flex items-center gap-2 mb-4">
+                <span className="text-xl">🏠</span>
+                <div className="text-white font-semibold">Housing Preferences</div>
+              </div>
+              <div className="flex flex-wrap gap-2 mb-4">
+                <div className="px-4 py-2 bg-white/30 rounded-full border border-white/20 text-white text-xs">📍 On Campus</div>
+                <div className="px-4 py-2 bg-white/30 rounded-full border border-white/20 text-white text-xs">💰 $800-1200/mo</div>
+                <div className="px-4 py-2 bg-white/30 rounded-full border border-white/20 text-white text-xs">🛏️ Private Room</div>
+              </div>
+              <div className="text-white/60 text-sm mb-2">Move-in: Fall 2026</div>
+              <div className="h-2 w-full bg-white/20 rounded-full overflow-hidden">
+                <div className="h-full w-3/4 bg-gradient-to-r from-purple-400 to-pink-400 rounded-full"></div>
+              </div>
+            </div>
+          </div>
+
+          {/* Card 4: Sleep Schedule */}
+          <div className="absolute bottom-48 right-24 opacity-10 transform rotate-[-10deg] pointer-events-none hidden xl:block">
+            <div className="bg-white/20 backdrop-blur-md rounded-2xl p-6 border border-white/30 w-56 shadow-2xl">
+              <div className="flex items-center gap-3 mb-4">
+                <span className="text-2xl">⏰</span>
+                <div className="text-white font-semibold">Sleep Schedule</div>
+              </div>
+              <div className="space-y-2">
+                <div className="flex items-center justify-between text-white/70 text-sm"><span>Bedtime</span><span className="text-white">11 PM - 1 AM</span></div>
+                <div className="flex items-center justify-between text-white/70 text-sm"><span>Wake up</span><span className="text-white">7 AM - 9 AM</span></div>
+              </div>
+            </div>
+          </div>
+
+          {/* Card 5: Matched */}
+          <div className="absolute top-1/3 right-1/4 opacity-8 transform rotate-[-5deg] pointer-events-none hidden xl:block">
+            <div className="bg-white/20 backdrop-blur-md rounded-2xl p-5 border border-white/30 w-52 shadow-2xl">
+              <div className="text-center mb-3">
+                <span className="text-3xl mb-2 block">✨</span>
+                <div className="text-white font-semibold">Matched!</div>
+              </div>
+              <div className="space-y-1 text-white/70 text-sm text-center">
+                <p>You both like quiet spaces</p>
+                <p>Similar study schedules</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 w-full relative z-10">
+          <div className="text-center mb-12">
+            <h1 className="text-5xl md:text-6xl font-bold text-white mb-6 leading-tight">
+              Find Your Perfect
+              <span 
+                className="block text-transparent bg-clip-text font-black" 
+                style={{ 
+                  backgroundImage: "linear-gradient(to right, rgb(184, 156, 255), rgb(192, 132, 252))", 
+                  filter: "drop-shadow(rgba(255, 255, 255, 0.4) 0px 0px 40px) drop-shadow(rgba(255, 255, 255, 0.4) 0px 0px 60px)" 
+                }}
+              >
+                Roommate
+              </span>
             </h1>
-            <p className="mt-8 max-w-3xl text-xl leading-9 text-white/78 sm:text-2xl">
-              RoomSync is the roommate-matching app built specifically for college students. Less anxiety, more compatibility, all in one place.
+            <p className="text-xl text-neutral-350 max-w-2xl mx-auto leading-relaxed">
+              RoomSync is the roommate-matching app built specifically for college students. Less anxiety, more compatibility — all in one place.
             </p>
-            <button
-              className="mt-12 rounded-full bg-[#efc8ef] px-16 py-5 text-2xl font-semibold text-black shadow-[0_0_38px_rgba(239,200,239,0.42)] transition hover:-translate-y-0.5 hover:bg-[#f5d7f5]"
+          </div>
+
+          <div className="flex justify-center">
+            <button 
+              className="text-black py-4 px-12 rounded-full font-semibold transition-all duration-300 text-lg border border-black/10 relative overflow-hidden group" 
+              style={{ 
+                backgroundColor: "rgb(244, 204, 245)", 
+                boxShadow: "rgba(244, 204, 245, 0.4) 0px 8px 24px, rgba(244, 204, 245, 0.3) 0px 4px 12px" 
+              }}
               onClick={onStart}
             >
-              {ctaLabel}
+              <span className="relative z-10">{ctaLabel}</span>
+              <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300" style={{ background: "radial-gradient(circle, rgba(255, 255, 255, 0.3) 0%, transparent 70%)" }}></div>
             </button>
+          </div>
 
-            <div className="mt-16 grid w-full max-w-4xl gap-4 sm:grid-cols-3">
-              {[
-                ["100%", "Student Focused"],
-                ["3-Step", "Match Process"],
-                ["Fall 2026", "Launching"],
-              ].map(([value, label]) => (
-                <div key={label} className="rounded-3xl border border-white/28 bg-white/8 px-8 py-7 backdrop-blur-md">
-                  <div className="font-display text-3xl font-black text-white">{value}</div>
-                  <div className="mt-2 text-lg text-white/78">{label}</div>
-                </div>
-              ))}
+          {/* Stats Cards */}
+          <div className="grid grid-cols-3 gap-4 mt-12 max-w-3xl mx-auto w-full">
+            {[
+              { value: "100%", label: "Student Focused", delay: "0s" },
+              { value: "3-Step", label: "Match Process", delay: "0.15s" },
+              { value: "Fall 2026", label: "Launching", delay: "0.3s" }
+            ].map(({ value, label, delay }) => (
+              <div 
+                key={label}
+                className="bg-white/10 backdrop-blur-md rounded-2xl p-4 text-center border border-white/30 shadow-lg transition-all duration-300 ease-out hover:-translate-y-1.5 hover:border-purple-300 hover:shadow-2xl hover:shadow-purple-400/30 animate-[fadeUp_0.6s_ease-out_both]"
+                style={{ animationDelay: delay }}
+              >
+                <div className="text-2xl font-bold text-white font-sans">{value}</div>
+                <div className="text-sm text-neutral-300 font-sans">{label}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* About Section */}
+      <section id="about" className="py-32 bg-neutral-50 dark:bg-neutral-900 min-h-screen flex items-center transition-colors duration-300">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 w-full">
+          <div className="text-center mb-12">
+            <h2 className="text-3xl md:text-4xl font-bold text-neutral-900 dark:text-white mb-4 font-display">Why Choose RoomSync?</h2>
+            <p className="text-lg text-neutral-600 dark:text-neutral-300 max-w-2xl mx-auto">
+              We built RoomSync so you never have to post in a random group chat again.
+            </p>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+            {/* Feature 1 */}
+            <div className="bg-white dark:bg-neutral-800 rounded-xl p-6 shadow-sm hover:shadow-lg transition-all duration-300 border border-neutral-100 dark:border-neutral-700/50">
+              <div className="w-12 h-12 rounded-lg flex items-center justify-center mb-4 bg-[#f4ccf5]">
+                <Shield className="w-6 h-6 text-black" />
+              </div>
+              <h3 className="text-xl font-semibold text-neutral-900 dark:text-white mb-2 font-display">Verified Users</h3>
+              <p className="text-neutral-600 dark:text-neutral-300 leading-relaxed">
+                All users go through university email verification for safety and peace of mind.
+              </p>
+            </div>
+            {/* Feature 2 */}
+            <div className="bg-white dark:bg-neutral-800 rounded-xl p-6 shadow-sm hover:shadow-lg transition-all duration-300 border border-neutral-100 dark:border-neutral-700/50">
+              <div className="w-12 h-12 rounded-lg flex items-center justify-center mb-4 bg-[#f4ccf5]">
+                <Search className="w-6 h-6 text-black" />
+              </div>
+              <h3 className="text-xl font-semibold text-neutral-900 dark:text-white mb-2 font-display">Smart Matching</h3>
+              <p className="text-neutral-600 dark:text-neutral-300 leading-relaxed">
+                Our algorithm matches you with compatible roommates based on lifestyle and preferences.
+              </p>
+            </div>
+            {/* Feature 3 */}
+            <div className="bg-white dark:bg-neutral-800 rounded-xl p-6 shadow-sm hover:shadow-lg transition-all duration-300 border border-neutral-100 dark:border-neutral-700/50">
+              <div className="w-12 h-12 rounded-lg flex items-center justify-center mb-4 bg-[#f4ccf5]">
+                <MessageCircle className="w-6 h-6 text-black" />
+              </div>
+              <h3 className="text-xl font-semibold text-neutral-900 dark:text-white mb-2 font-display">Instant Messaging</h3>
+              <p className="text-neutral-600 dark:text-neutral-300 leading-relaxed">
+                Connect with potential roommates through secure messaging after a mutual match.
+              </p>
             </div>
           </div>
         </div>
       </section>
 
-      <section id="about" className="px-5 py-24 sm:px-8">
-        <div className="mx-auto max-w-7xl text-center">
-          <h2 className="font-display text-5xl font-semibold tracking-normal">Why Choose RoomSync?</h2>
-          <p className="mx-auto mt-6 max-w-3xl text-2xl leading-10 text-black/65">
-            We built RoomSync so you never have to post in a random group chat again.
+      {/* How It Works Section */}
+      <section id="how-it-works" className="py-32 bg-white dark:bg-neutral-800 min-h-screen flex items-center transition-colors duration-300 border-t border-neutral-100 dark:border-neutral-700/50">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 w-full">
+          <div className="text-center mb-12">
+            <h2 className="text-3xl md:text-4xl font-bold text-neutral-900 dark:text-white mb-4 font-display">How It Works</h2>
+            <p className="text-lg text-neutral-600 dark:text-neutral-300 max-w-2xl mx-auto">Your Next Roommate Match Starts Here</p>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+            <div className="text-center">
+              <div className="inline-block mb-4">
+                <div className="w-16 h-16 rounded-xl bg-neutral-50 dark:bg-neutral-700 border-2 border-neutral-200 dark:border-neutral-600 flex items-center justify-center transition-colors duration-300">
+                  <UserPlus className="w-8 h-8 text-neutral-700 dark:text-white" />
+                </div>
+              </div>
+              <h3 className="text-lg font-semibold text-neutral-900 dark:text-white mb-2 font-display">Create Your Profile</h3>
+              <p className="text-sm text-neutral-600 dark:text-neutral-300 max-w-md mx-auto">
+                Share your lifestyle, budget, and housing preferences in minutes.
+              </p>
+            </div>
+            <div className="text-center">
+              <div className="inline-block mb-4">
+                <div className="w-16 h-16 rounded-xl bg-neutral-50 dark:bg-neutral-700 border-2 border-neutral-200 dark:border-neutral-600 flex items-center justify-center transition-colors duration-300">
+                  <Search className="w-8 h-8 text-neutral-700 dark:text-white" />
+                </div>
+              </div>
+              <h3 className="text-lg font-semibold text-neutral-900 dark:text-white mb-2 font-display">Browse & Match</h3>
+              <p className="text-sm text-neutral-600 dark:text-neutral-300 max-w-md mx-auto">
+                Browse compatibility-ranked profiles. Like the ones that feel right.
+              </p>
+            </div>
+            <div className="text-center">
+              <div className="inline-block mb-4">
+                <div className="w-16 h-16 rounded-xl bg-neutral-50 dark:bg-neutral-700 border-2 border-neutral-200 dark:border-neutral-600 flex items-center justify-center transition-colors duration-300">
+                  <MessageCircle className="w-8 h-8 text-neutral-700 dark:text-white" />
+                </div>
+              </div>
+              <h3 className="text-lg font-semibold text-neutral-900 dark:text-white mb-2 font-display">Connect & Chat</h3>
+              <p className="text-sm text-neutral-600 dark:text-neutral-300 max-w-md mx-auto">
+                Chat, confirm details, and sign that lease — stress free.
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* FAQs Section */}
+      <section id="faqs" className="py-32 bg-neutral-50 dark:bg-neutral-900 transition-colors duration-300 border-t border-neutral-100 dark:border-neutral-700/50">
+        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 w-full">
+          <div className="text-center mb-12">
+            <h2 className="text-3xl md:text-4xl font-bold text-neutral-900 dark:text-white mb-4 font-display">Frequently Asked Questions</h2>
+          </div>
+          <div className="space-y-6">
+            <div className="bg-white dark:bg-neutral-800 rounded-xl p-6 shadow-sm border border-neutral-100 dark:border-neutral-700">
+              <h3 className="text-lg font-semibold text-neutral-900 dark:text-white mb-2 font-display">Who can join?</h3>
+              <p className="text-neutral-600 dark:text-neutral-300">RoomSync is starting with verified student email access. You must sign in using a Rutgers ScarletMail address.</p>
+            </div>
+            <div className="bg-white dark:bg-neutral-800 rounded-xl p-6 shadow-sm border border-neutral-100 dark:border-neutral-700">
+              <h3 className="text-lg font-semibold text-neutral-900 dark:text-white mb-2 font-display">When can I message?</h3>
+              <p className="text-neutral-600 dark:text-neutral-300">Messaging unlocks only after a mutual match, so you don't have to worry about unwanted DMs from strangers.</p>
+            </div>
+            <div className="bg-white dark:bg-neutral-800 rounded-xl p-6 shadow-sm border border-neutral-100 dark:border-neutral-700">
+              <h3 className="text-lg font-semibold text-neutral-900 dark:text-white mb-2 font-display">How many swipes do I get?</h3>
+              <p className="text-neutral-600 dark:text-neutral-300">To maintain high quality connections, students get 30 swipes every 12 hours.</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Footer / Bottom CTA Section */}
+      <section className="bg-neutral-900 dark:bg-black py-32 min-h-[80vh] flex items-center transition-colors duration-300">
+        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 w-full text-center">
+          <div className="mb-8 flex justify-center">
+            <div className="w-24 h-24 rounded-2xl flex items-center justify-center bg-black border-2 border-white/20 shadow-2xl">
+              <Home className="w-12 h-12 text-white" />
+            </div>
+          </div>
+          <h2 className="text-4xl md:text-5xl font-bold text-white mb-6 font-display">Ready to find your people?</h2>
+          <p className="text-lg text-neutral-400 mb-10 max-w-2xl mx-auto font-medium">
+            Your Perfect Rutgers Roommate Match Could Start Here
           </p>
-          <div className="mt-20 grid gap-8 lg:grid-cols-3">
-            <LandingFeature icon={Shield} title="Verified Users" body="All users go through university email verification for safety and peace of mind." />
-            <LandingFeature icon={Search} title="Smart Matching" body="Our algorithm matches you with compatible roommates based on lifestyle and preferences." />
-            <LandingFeature icon={MessageCircle} title="Instant Messaging" body="Connect with potential roommates through secure messaging after a mutual match." />
-          </div>
-        </div>
-      </section>
-
-      <section id="how-it-works" className="px-5 py-24 sm:px-8">
-        <div className="mx-auto max-w-7xl text-center">
-          <h2 className="font-display text-5xl font-semibold tracking-normal">How It Works</h2>
-          <p className="mt-6 text-2xl text-black/65">Your Next Roommate Match Starts Here</p>
-          <div className="mt-20 grid gap-12 lg:grid-cols-3">
-            <LandingStep icon={UserPlus} title="Create Your Profile" body="Share your lifestyle, budget, and housing preferences in minutes." />
-            <LandingStep icon={Search} title="Browse & Match" body="Browse compatibility-ranked profiles. Like the ones that feel right." />
-            <LandingStep icon={MessageCircle} title="Connect & Chat" body="Chat, confirm details, and plan your next move with confidence." />
-          </div>
-        </div>
-      </section>
-
-      <section id="faqs" className="px-5 pb-28 pt-16 sm:px-8">
-        <div className="mx-auto max-w-4xl rounded-3xl bg-white p-8 shadow-sm">
-          <div className="flex items-center gap-3">
-            <span className="grid size-12 place-items-center rounded-2xl bg-[#efc8ef]">
-              <HelpCircle className="size-7 text-black" />
-            </span>
-            <h2 className="font-display text-4xl font-semibold">FAQs</h2>
-          </div>
-          <div className="mt-8 grid gap-5 text-lg text-black/68">
-            <p><span className="font-semibold text-black">Who can join?</span> RoomSync is starting with verified student email access.</p>
-            <p><span className="font-semibold text-black">When can I message?</span> Messaging unlocks only after a mutual match.</p>
-            <p><span className="font-semibold text-black">How many swipes do I get?</span> You get 30 swipes every 12 hours.</p>
-          </div>
+          <button 
+            className="inline-flex items-center gap-3 px-8 py-4 text-black rounded-full font-semibold transition-all shadow-lg text-lg mb-8 hover:opacity-90 hover:scale-105 duration-300" 
+            style={{ backgroundColor: "rgb(244, 204, 245)" }}
+            onClick={onStart}
+          >
+            <Home className="w-5 h-5" />
+            <span>{ctaLabel}</span>
+            <ArrowRight className="w-5 h-5" />
+          </button>
+          <p className="text-sm text-neutral-500 mb-8">Launching at Rutgers University · Expanding to Big Ten schools soon</p>
+          <p className="text-sm text-neutral-600">© 2026 RoomSync. All rights reserved.</p>
         </div>
       </section>
     </div>
-  );
-}
-
-function FloatingLandingCard({
-  className,
-  title,
-  subtitle,
-  lines,
-  large = false,
-}: {
-  className: string;
-  title: string;
-  subtitle: string;
-  lines: string[];
-  large?: boolean;
-}) {
-  return (
-    <div className={`pointer-events-none absolute z-0 rounded-3xl border border-white/10 bg-white/[0.045] p-7 text-white/20 backdrop-blur-sm ${large ? "w-96" : "w-80"} ${className}`}>
-      <div className={`font-display font-black ${large ? "text-7xl" : "text-3xl"}`}>{title}</div>
-      <div className="mt-2 text-xl">{subtitle}</div>
-      <div className="mt-7 space-y-3 text-lg">
-        {lines.map((line) => (
-          <div key={line}>{line}</div>
-        ))}
-      </div>
-    </div>
-  );
-}
-
-function LandingFeature({ icon: Icon, title, body }: { icon: ComponentType<{ className?: string }>; title: string; body: string }) {
-  return (
-    <article className="rounded-3xl bg-white p-10 text-left shadow-sm">
-      <div className="grid size-20 place-items-center rounded-2xl bg-[#efc8ef]">
-        <Icon className="size-9 text-black" />
-      </div>
-      <h3 className="font-display mt-9 text-4xl font-semibold tracking-normal">{title}</h3>
-      <p className="mt-6 text-2xl leading-10 text-black/65">{body}</p>
-    </article>
-  );
-}
-
-function LandingStep({ icon: Icon, title, body }: { icon: ComponentType<{ className?: string }>; title: string; body: string }) {
-  return (
-    <article className="text-center">
-      <div className="mx-auto grid size-24 place-items-center rounded-3xl border border-black/10 bg-white">
-        <Icon className="size-12 text-black/78" />
-      </div>
-      <h3 className="font-display mt-8 text-3xl font-semibold tracking-normal">{title}</h3>
-      <p className="mx-auto mt-5 max-w-md text-xl leading-8 text-black/65">{body}</p>
-    </article>
   );
 }
 
