@@ -20,7 +20,8 @@ export async function POST(request: Request) {
   const { url, publishableKey } = getSupabaseEnv();
   const supabase = createSupabaseClient(url, publishableKey);
   const requestUrl = new URL(request.url);
-  const origin = requestUrl.origin;
+  const isLocal = requestUrl.hostname === "localhost" || requestUrl.hostname === "127.0.0.1";
+  const origin = isLocal ? requestUrl.origin : "https://roomsync-sigma.vercel.app";
 
   const { error } = await supabase.auth.signInWithOtp({
     email: normalizedEmail,
