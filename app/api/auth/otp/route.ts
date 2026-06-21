@@ -3,7 +3,14 @@ import { NextResponse } from "next/server";
 import { getSupabaseEnv, isRutgersEmail, rutgersEmailMessage } from "@/lib/supabase/config";
 
 export async function POST(request: Request) {
-  const { email } = (await request.json()) as { email?: string };
+  let email: string | undefined;
+  try {
+    const body = (await request.json()) as { email?: string };
+    email = body.email;
+  } catch {
+    return NextResponse.json({ error: "Invalid JSON body." }, { status: 400 });
+  }
+
   const normalizedEmail = email?.trim().toLowerCase() ?? "";
 
   if (!isRutgersEmail(normalizedEmail)) {
@@ -13,8 +20,7 @@ export async function POST(request: Request) {
   const { url, publishableKey } = getSupabaseEnv();
   const supabase = createSupabaseClient(url, publishableKey);
   const requestUrl = new URL(request.url);
-  const isLocal = requestUrl.hostname === "localhost" || requestUrl.hostname === "127.0.0.1";
-  const origin = isLocal ? requestUrl.origin : "https://roomsync-sigma.vercel.app";
+  const origin = requestUrl.origin;
 
   const { error } = await supabase.auth.signInWithOtp({
     email: normalizedEmail,

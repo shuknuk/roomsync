@@ -3,8 +3,20 @@ import { isRutgersEmail, rutgersEmailMessage } from "@/lib/supabase/config";
 import { createClient } from "@/lib/supabase/server";
 import type { SwipeDecision } from "@/lib/types";
 
+const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
 export async function POST(request: Request) {
-  const { targetId, decision } = (await request.json()) as { targetId?: string; decision?: SwipeDecision };
+  let targetId: string | undefined;
+  let decision: SwipeDecision | undefined;
+
+  try {
+    const body = (await request.json()) as { targetId?: string; decision?: SwipeDecision };
+    targetId = body.targetId;
+    decision = body.decision;
+  } catch {
+    return NextResponse.json({ error: "Invalid JSON body." }, { status: 400 });
+  }
+
   const supabase = await createClient();
   const { data, error: userError } = await supabase.auth.getUser();
 
@@ -17,7 +29,15 @@ export async function POST(request: Request) {
   }
 
   if (!targetId || (decision !== "like" && decision !== "pass")) {
-    return NextResponse.json({ error: "Invalid swipe." }, { status: 400 });
+    return NextResponse.json({ error: "Invalid swipe decision." }, { status: 400 });
+  }
+
+  if (!uuidRegex.test(targetId)) {
+    return NextResponse.json({ error: "Invalid target ID format." }, { status: 400 });
+  }
+
+  if (targetId === data.user.id) {
+    return NextResponse.json({ error: "You cannot swipe on yourself." }, { status: 400 });
   }
 
   const { error } = await supabase.from("swipes").insert({

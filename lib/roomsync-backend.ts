@@ -133,11 +133,20 @@ export async function loadBackendState(): Promise<AppState> {
   const { data: profileRow } = await supabase.from("profiles").select("*").eq("id", user.id).maybeSingle<ProfileRow>();
   const userProfile = profileRow ? toUserProfile(profileRow) : defaultUser;
 
-  const [{ data: profileRows }, { data: swipeRows }, { data: matchRows }, { data: messageRows }] = await Promise.all([
-    supabase.from("profiles").select("*").neq("id", user.id).eq("is_complete", true).limit(80).returns<ProfileRow[]>(),
-    supabase.from("swipes").select("target_id, decision, created_at").order("created_at", { ascending: false }).returns<SwipeRow[]>(),
-    supabase.from("matches").select("id, user_a, user_b, created_at").order("created_at", { ascending: false }).returns<MatchRow[]>(),
-    supabase.from("messages").select("id, match_id, sender_id, body, created_at").order("created_at", { ascending: true }).returns<MessageRow[]>(),
+  // 1. Fetch user's swipes and matches in parallel
+  const [{ data: swipeRows }, { data: matchRows }] = await Promise.all([
+    supabase
+      .from("swipes")
+      .select("target_id, decision, created_at")
+      .eq("swiper_id", user.id)
+      .order("created_at", { ascending: false })
+      .returns<SwipeRow[]>(),
+    supabase
+      .from("matches")
+      .select("id, user_a, user_b, created_at")
+      .or(`user_a.eq.${user.id},user_b.eq.${user.id}`)
+      .order("created_at", { ascending: false })
+      .returns<MatchRow[]>(),
   ]);
 
   const swipes = (swipeRows ?? []).map((swipe) => ({
@@ -146,13 +155,33 @@ export async function loadBackendState(): Promise<AppState> {
     swipedAt: swipe.created_at,
   }));
 
+  const seenIds = swipes.map((swipe) => swipe.profileId);
   const matches = matchRows ?? [];
   const matchedProfileIds = matches.map((match) => (match.user_a === user.id ? match.user_b : match.user_a));
-  const profileMap = new Map((profileRows ?? []).map((row) => [row.id, row]));
 
+  // 2. Fetch profiles that the user hasn't swiped on yet (discover queue)
+  let discoverProfilesQuery = supabase
+    .from("profiles")
+    .select("*")
+    .neq("id", user.id)
+    .eq("is_complete", true);
+
+  if (seenIds.length > 0) {
+    discoverProfilesQuery = discoverProfilesQuery.not("id", "in", `(${seenIds.join(",")})`);
+  }
+
+  const { data: discoverProfileRows } = await discoverProfilesQuery.limit(80).returns<ProfileRow[]>();
+
+  const profileMap = new Map((discoverProfileRows ?? []).map((row) => [row.id, row]));
+
+  // 3. Ensure profiles for matched users are fetched even if they are not in the discover queue
   const missingMatchedIds = matchedProfileIds.filter((id) => !profileMap.has(id));
   if (missingMatchedIds.length > 0) {
-    const { data: matchedRows } = await supabase.from("profiles").select("*").in("id", missingMatchedIds).returns<ProfileRow[]>();
+    const { data: matchedRows } = await supabase
+      .from("profiles")
+      .select("*")
+      .in("id", missingMatchedIds)
+      .returns<ProfileRow[]>();
     (matchedRows ?? []).forEach((row) => profileMap.set(row.id, row));
   }
 
@@ -164,8 +193,24 @@ export async function loadBackendState(): Promise<AppState> {
     matches.map((match) => [match.user_a === user.id ? match.user_b : match.user_a, match.id]),
   );
 
-  const profileIdByMatchId = Object.fromEntries(Object.entries(matchIdsByProfileId).map(([profileId, matchId]) => [matchId, profileId]));
-  const messages: Message[] = (messageRows ?? [])
+  const profileIdByMatchId = Object.fromEntries(
+    Object.entries(matchIdsByProfileId).map(([profileId, matchId]) => [matchId, profileId])
+  );
+
+  // 4. Fetch messages only for the user's active matches
+  const matchedIds = matches.map((match) => match.id);
+  let messageRows: MessageRow[] = [];
+  if (matchedIds.length > 0) {
+    const { data: fetchedMessages } = await supabase
+      .from("messages")
+      .select("id, match_id, sender_id, body, created_at")
+      .in("match_id", matchedIds)
+      .order("created_at", { ascending: true })
+      .returns<MessageRow[]>();
+    messageRows = fetchedMessages ?? [];
+  }
+
+  const messages: Message[] = messageRows
     .map((message) => {
       const profileId = profileIdByMatchId[message.match_id];
       if (!profileId) {

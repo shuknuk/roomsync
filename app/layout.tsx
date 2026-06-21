@@ -1,25 +1,21 @@
 import type { Metadata, Viewport } from "next";
-import { Inter, Manrope } from "next/font/google";
+import { Comfortaa } from "next/font/google";
 import "./globals.css";
 
-const inter = Inter({
+const comfortaa = Comfortaa({
   subsets: ["latin"],
-  variable: "--font-inter",
-});
-
-const manrope = Manrope({
-  subsets: ["latin"],
-  variable: "--font-manrope",
+  weight: ["300", "400", "500", "600", "700"],
+  variable: "--font-comfortaa",
 });
 
 export const metadata: Metadata = {
-  title: "RoomSync",
+  title: "Roomora",
   description:
-    "RoomSync helps incoming Rutgers international students find compatible roommates through lifestyle-first matching.",
+    "This web application streamlines project management for teams, offering intuitive task tracking, collaboration tools, and progress visualization to enhance productivity.",
 };
 
 export const viewport: Viewport = {
-  themeColor: "#0b0f14",
+  themeColor: "#443143",
 };
 
 export default function RootLayout({
@@ -29,7 +25,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body className={`${inter.variable} ${manrope.variable}`}>
+      <body className={`${comfortaa.variable}`}>
         {children}
       </body>
     </html>

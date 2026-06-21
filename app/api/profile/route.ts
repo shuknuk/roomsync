@@ -13,7 +13,32 @@ function initials(name: string) {
 }
 
 export async function POST(request: Request) {
-  const profile = (await request.json()) as UserProfile;
+  let profile: UserProfile;
+  try {
+    profile = (await request.json()) as UserProfile;
+  } catch {
+    return NextResponse.json({ error: "Invalid JSON body." }, { status: 400 });
+  }
+
+  if (!profile || typeof profile !== "object") {
+    return NextResponse.json({ error: "Profile data is required." }, { status: 400 });
+  }
+
+  if (!profile.name || typeof profile.name !== "string" || !profile.name.trim()) {
+    return NextResponse.json({ error: "Name is required." }, { status: 400 });
+  }
+
+  if (profile.age !== undefined && profile.age !== null) {
+    const ageNum = Number(profile.age);
+    if (Number.isNaN(ageNum) || ageNum < 16) {
+      return NextResponse.json({ error: "Age must be at least 16." }, { status: 400 });
+    }
+  }
+
+  if (profile.bio && typeof profile.bio === "string" && profile.bio.length > 500) {
+    return NextResponse.json({ error: "Bio must be 500 characters or less." }, { status: 400 });
+  }
+
   const supabase = await createClient();
   const { data, error: userError } = await supabase.auth.getUser();
 
@@ -29,12 +54,12 @@ export async function POST(request: Request) {
     id: data.user.id,
     name: profile.name,
     age: profile.age,
-    university: profile.university,
+    university: profile.university || "Rutgers University",
     pronouns: profile.pronouns,
     country: profile.country,
     major: profile.major,
     bio: profile.bio,
-    interests: profile.interests,
+    interests: profile.interests || [],
     sleep: profile.sleep,
     cleanliness: profile.cleanliness,
     study: profile.study,

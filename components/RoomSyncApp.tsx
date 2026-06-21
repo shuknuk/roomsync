@@ -52,7 +52,7 @@ const navItems: { view: View; label: string; icon: ComponentType<{ className?: s
 ];
 
 const textInput =
-  "w-full rounded-2xl border border-slate-700 bg-slate-950/70 px-4 py-3 text-sm text-slate-100 outline-none transition focus:border-teal-300";
+  "w-full rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white placeholder:text-white/30 outline-none transition focus:border-purple-400";
 
 const profileInput =
   "w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-base text-white placeholder:text-white/30 outline-none transition focus:border-purple-400";
@@ -178,7 +178,7 @@ export function RoomSyncApp() {
     return (
       <main className="grid min-h-screen place-items-center px-6">
         <div className="rounded-3xl border border-slate-800 bg-slate-950/80 p-6 text-sm text-slate-300">
-          Loading RoomSync...
+          Loading Roomora...
         </div>
       </main>
     );
@@ -275,28 +275,28 @@ function TopNav({
   onSignOut: () => void;
 }) {
   return (
-    <header className="sticky top-0 z-30 border-b border-slate-800 bg-slate-950/88 backdrop-blur-xl">
-      <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-4 sm:px-6 lg:px-8">
-        <button className="flex items-center gap-3 text-left" onClick={() => onNavigate("home")} aria-label="Go to home">
-          <span className="grid size-10 place-items-center rounded-2xl bg-[#cc0033] text-sm font-black text-white shadow-lg shadow-red-950/30">
-            RS
-          </span>
-          <span>
-            <span className="font-display block text-base font-extrabold tracking-tight">RoomSync</span>
-            <span className="block text-xs text-slate-400">Rutgers ISO MVP</span>
+    <header className="sticky top-0 z-50 backdrop-blur-xl border-b transition-colors duration-300" style={{ backgroundColor: "rgba(68, 49, 67, 0.75)", borderColor: "rgba(255, 255, 255, 0.1)" }}>
+      <div className="mx-auto flex h-20 max-w-6xl items-center justify-between px-4 sm:px-6 lg:px-8">
+        <button className="flex items-center gap-3 group relative text-left" onClick={() => onNavigate("home")} aria-label="Go to home">
+          <div className="w-11 h-11 rounded-2xl flex items-center justify-center overflow-hidden" style={{ background: "linear-gradient(135deg, rgb(179, 136, 255), rgb(216, 180, 254))" }}>
+            <Home className="w-6 h-6 text-white" />
+          </div>
+          <span className="text-xl tracking-tight font-semibold">
+            <span style={{ color: "rgb(216, 180, 254)" }}>Room</span>
+            <span className="text-white">ora</span>
           </span>
         </button>
 
-        <nav className="hidden items-center gap-1 rounded-full border border-slate-800 bg-slate-900/70 p-1 md:flex">
+        <nav className="hidden items-center gap-2 rounded-full border border-white/10 bg-white/5 p-1 md:flex">
           {navItems.map((item) => {
             const Icon = item.icon;
             const disabled = item.view !== "home" && item.view !== "profile" && (!authenticated || !onboarded);
             return (
               <button
                 key={item.view}
-                className={`flex items-center gap-2 rounded-full px-3 py-2 text-sm transition ${
-                  activeView === item.view ? "bg-white text-slate-950" : "text-slate-300 hover:bg-slate-800"
-                } ${disabled ? "opacity-40" : ""}`}
+                className={`flex items-center gap-2 rounded-full px-4 py-2 text-sm transition font-medium ${
+                  activeView === item.view ? "bg-white text-slate-950 shadow-md font-bold" : "text-white/80 hover:bg-white/10 hover:text-white"
+                } ${disabled ? "opacity-30" : ""}`}
                 disabled={disabled}
                 onClick={() => onNavigate(item.view)}
               >
@@ -309,7 +309,7 @@ function TopNav({
 
         {authenticated ? (
           <button
-            className="hidden items-center gap-2 rounded-full border border-slate-800 px-3 py-2 text-sm text-slate-300 transition hover:border-slate-600 hover:text-white md:flex"
+            className="hidden items-center gap-2 rounded-full border border-white/20 px-4 py-2 text-sm text-white hover:bg-white/10 transition-colors backdrop-blur-sm md:flex"
             onClick={onSignOut}
             title={authEmail ?? "Signed in"}
           >
@@ -318,7 +318,7 @@ function TopNav({
           </button>
         ) : (
           <button
-            className="hidden items-center gap-2 rounded-full border border-slate-800 px-3 py-2 text-sm text-slate-300 transition hover:border-slate-600 hover:text-white md:flex"
+            className="hidden items-center gap-2 rounded-full border border-white/20 px-4 py-2 text-sm text-white hover:bg-white/10 transition-colors backdrop-blur-sm md:flex"
             onClick={() => onNavigate("profile")}
           >
             <User className="size-4" />
@@ -342,7 +342,7 @@ function BottomNav({
   onboarded: boolean;
 }) {
   return (
-    <nav className="safe-bottom fixed inset-x-0 bottom-0 z-40 border-t border-slate-800 bg-slate-950/95 px-2 pt-2 backdrop-blur-xl md:hidden">
+    <nav className="safe-bottom fixed inset-x-0 bottom-0 z-40 border-t border-white/10 bg-[#443143]/95 px-2 pt-2 backdrop-blur-xl md:hidden">
       <div className="mx-auto grid max-w-md grid-cols-5 gap-1">
         {navItems.map((item) => {
           const Icon = item.icon;
@@ -353,8 +353,8 @@ function BottomNav({
               disabled={disabled}
               onClick={() => onNavigate(item.view)}
               className={`grid min-h-14 place-items-center rounded-2xl px-1 text-[0.68rem] transition ${
-                activeView === item.view ? "bg-white text-slate-950" : "text-slate-400"
-              } ${disabled ? "opacity-35" : "hover:bg-slate-900"}`}
+                activeView === item.view ? "bg-white text-[#443143] font-bold" : "text-white/60"
+              } ${disabled ? "opacity-35" : "hover:bg-white/5"}`}
             >
               <Icon className="size-5" />
               <span className="mt-0.5">{item.label}</span>
@@ -380,7 +380,15 @@ function HomeScreen({
   const [isDarkMode, setIsDarkMode] = useState(true);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
-  const ctaLabel = authenticated ? (onboarded ? "Browse Matches" : "Create My Profile") : "Sign In";
+  const ctaLabel = authenticated ? (onboarded ? "Browse Matches" : "Create My Profile") : "Join the Waitlist";
+
+  useEffect(() => {
+    if (isDarkMode) {
+      document.documentElement.classList.add("dark");
+    } else {
+      document.documentElement.classList.remove("dark");
+    }
+  }, [isDarkMode]);
 
   function scrollToSection(id: string) {
     document.getElementById(id)?.scrollIntoView({ behavior: "smooth", block: "start" });
@@ -388,65 +396,54 @@ function HomeScreen({
 
   return (
     <div className={`min-h-screen transition-colors duration-300 ${isDarkMode ? "dark bg-neutral-900 text-white" : "bg-white text-neutral-900"}`}>
-      {/* Styles for keyframe animations */}
-      <style>{`
-        @keyframes gradientShift {
-          0% { background-position: 0% 50%; }
-          50% { background-position: 100% 50%; }
-          100% { background-position: 0% 50%; }
-        }
-
-        @keyframes fadeUp {
-          from {
-            opacity: 0;
-            transform: translateY(20px);
-          }
-          to {
-            opacity: 1;
-            transform: translateY(0);
-          }
-        }
-      `}</style>
-
       {/* Header */}
-      <header className="border-b border-black/10 dark:border-white/10 sticky top-0 z-50 backdrop-blur-md bg-white/80 dark:bg-[#443143]/80">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-16">
-            <button className="flex items-center gap-2 text-left" onClick={() => scrollToSection("home")}>
-              <div className="w-10 h-10 rounded-lg flex items-center justify-center bg-gradient-to-br from-purple-400 to-fuchsia-300">
+      <header className="sticky top-0 z-50 backdrop-blur-xl border-b transition-colors duration-300" style={{ backgroundColor: isDarkMode ? "rgba(68, 49, 67, 0.7)" : "rgba(255, 255, 255, 0.8)", borderColor: isDarkMode ? "rgba(255, 255, 255, 0.1)" : "rgba(0, 0, 0, 0.08)" }}>
+        <div className="max-w-7xl mx-auto px-6 sm:px-8 lg:px-12">
+          <div className="flex justify-between items-center h-20">
+            <button className="flex items-center gap-3 group relative text-left" onClick={() => scrollToSection("home")}>
+              <div className="w-11 h-11 rounded-2xl flex items-center justify-center overflow-hidden" style={{ background: "linear-gradient(135deg, rgb(179, 136, 255), rgb(216, 180, 254))" }}>
                 <Home className="w-6 h-6 text-white" />
               </div>
-              <span className="font-bold text-xl text-neutral-900 dark:text-white">
-                Room<span className="text-purple-500 dark:text-purple-300">Sync</span>
+              <span className="text-xl tracking-tight font-semibold">
+                <span style={{ color: "rgb(216, 180, 254)" }}>Room</span>
+                <span className={isDarkMode ? "text-white" : "text-neutral-900"}>ora</span>
               </span>
             </button>
-            <nav className="hidden md:flex items-center gap-8 font-medium">
-              <button onClick={() => scrollToSection("home")} className="text-neutral-600 dark:text-white/80 hover:text-neutral-900 dark:hover:text-white transition-colors">Home</button>
-              <button onClick={() => scrollToSection("how-it-works")} className="text-neutral-600 dark:text-white/80 hover:text-neutral-900 dark:hover:text-white transition-colors">How it Works</button>
-              <button onClick={() => scrollToSection("about")} className="text-neutral-600 dark:text-white/80 hover:text-neutral-900 dark:hover:text-white transition-colors">About</button>
-              <button onClick={() => scrollToSection("faqs")} className="text-neutral-600 dark:text-white/80 hover:text-neutral-900 dark:hover:text-white transition-colors">FAQs</button>
+            <nav className="hidden md:flex items-center gap-10">
+              <button onClick={() => scrollToSection("home")} className={`relative transition-colors duration-300 text-[15px] font-medium ${isDarkMode ? "text-white/70 hover:text-white" : "text-neutral-600 hover:text-neutral-900"}`}>
+                Home
+              </button>
+              <button onClick={() => scrollToSection("how-it-works")} className={`relative transition-colors duration-300 text-[15px] font-medium ${isDarkMode ? "text-white/70 hover:text-white" : "text-neutral-600 hover:text-neutral-900"}`}>
+                How it Works
+              </button>
+              <button onClick={() => scrollToSection("about")} className={`relative transition-colors duration-300 text-[15px] font-medium ${isDarkMode ? "text-white/70 hover:text-white" : "text-neutral-600 hover:text-neutral-900"}`}>
+                About
+              </button>
+              <button onClick={() => scrollToSection("faqs")} className={`relative transition-colors duration-300 text-[15px] font-medium ${isDarkMode ? "text-white/70 hover:text-white" : "text-neutral-600 hover:text-neutral-900"}`}>
+                FAQs
+              </button>
             </nav>
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-4">
               <button 
-                className="p-2 rounded-lg bg-black/5 dark:bg-white/10 text-neutral-700 dark:text-white hover:bg-black/10 dark:hover:bg-white/20 transition-colors backdrop-blur-sm border border-black/10 dark:border-white/20" 
+                className={`p-2 rounded-lg transition-colors backdrop-blur-sm border ${isDarkMode ? "bg-white/10 text-white hover:bg-white/20 border-white/20" : "bg-black/5 text-neutral-800 hover:bg-black/10 border-black/10"}`} 
                 aria-label="Toggle dark mode"
                 onClick={() => setIsDarkMode(!isDarkMode)}
               >
                 {isDarkMode ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
               </button>
               <button 
-                className="hidden sm:flex items-center gap-2 px-4 py-2 rounded-lg bg-black/5 dark:bg-white/10 text-neutral-700 dark:text-white hover:bg-black/10 dark:hover:bg-white/20 transition-colors backdrop-blur-sm border border-black/10 dark:border-white/20"
-                onClick={() => onNavigate("profile")}
+                className={`hidden sm:flex items-center gap-2 px-5 py-2.5 rounded-full font-semibold transition-all ${isDarkMode ? "bg-white/10 text-white hover:bg-white/20 border border-white/20" : "bg-black/5 text-neutral-800 hover:bg-black/10 border border-black/10"}`}
+                onClick={onStart}
               >
-                <User className="w-5 h-5" />
-                <span>{authenticated ? "Profile" : "Sign In"}</span>
+                <User className="w-4 h-4" />
+                <span>{authenticated ? "Enter App" : "Sign In"}</span>
               </button>
               <button 
-                className="md:hidden p-2 text-neutral-700 dark:text-white"
+                className="md:hidden p-2 rounded-lg hover:bg-white/10 transition-colors duration-300"
                 onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
                 aria-label="Toggle menu"
               >
-                <Menu className="w-6 h-6" />
+                <Menu className={`w-6 h-6 ${isDarkMode ? "text-white" : "text-neutral-955"}`} />
               </button>
             </div>
           </div>
@@ -455,247 +452,182 @@ function HomeScreen({
 
       {/* Mobile Menu */}
       {mobileMenuOpen && (
-        <div className="absolute top-16 left-0 right-0 z-40 bg-white dark:bg-[#443143] border-b border-black/10 dark:border-white/10 px-4 py-4 space-y-3 flex flex-col md:hidden text-neutral-700 dark:text-white/90 shadow-lg">
-          <button className="text-left py-2 hover:text-neutral-900 dark:hover:text-white" onClick={() => { scrollToSection("home"); setMobileMenuOpen(false); }}>Home</button>
-          <button className="text-left py-2 hover:text-neutral-900 dark:hover:text-white" onClick={() => { scrollToSection("how-it-works"); setMobileMenuOpen(false); }}>How it Works</button>
-          <button className="text-left py-2 hover:text-neutral-900 dark:hover:text-white" onClick={() => { scrollToSection("about"); setMobileMenuOpen(false); }}>About</button>
-          <button className="text-left py-2 hover:text-neutral-900 dark:hover:text-white" onClick={() => { scrollToSection("faqs"); setMobileMenuOpen(false); }}>FAQs</button>
+        <div className={`absolute top-20 left-0 right-0 z-40 border-b px-6 py-6 space-y-4 flex flex-col md:hidden shadow-xl backdrop-blur-lg ${isDarkMode ? "bg-[#443143]/95 border-white/10 text-white/90" : "bg-white/95 border-black/10 text-neutral-800"}`}>
+          <button className="text-left py-2 font-medium border-b border-white/5" onClick={() => { scrollToSection("home"); setMobileMenuOpen(false); }}>Home</button>
+          <button className="text-left py-2 font-medium border-b border-white/5" onClick={() => { scrollToSection("how-it-works"); setMobileMenuOpen(false); }}>How it Works</button>
+          <button className="text-left py-2 font-medium border-b border-white/5" onClick={() => { scrollToSection("about"); setMobileMenuOpen(false); }}>About</button>
+          <button className="text-left py-2 font-medium border-b border-white/5" onClick={() => { scrollToSection("faqs"); setMobileMenuOpen(false); }}>FAQs</button>
           <button 
-            className="flex items-center gap-2 py-2 text-left hover:text-neutral-900 dark:hover:text-white border-t border-black/5 dark:border-white/10 pt-3"
-            onClick={() => { onNavigate("profile"); setMobileMenuOpen(false); }}
+            className="flex items-center justify-between py-2 font-semibold pt-4"
+            onClick={() => { onStart(); setMobileMenuOpen(false); }}
           >
+            <span>{authenticated ? "Enter App" : "Sign In"}</span>
             <User className="w-5 h-5" />
-            <span>{authenticated ? "Profile" : "Sign In"}</span>
           </button>
         </div>
       )}
 
       {/* Hero Section */}
-      <section id="home" className="py-32 min-h-screen flex items-center relative overflow-hidden bg-[#443143] text-white">
-        {/* Noise overlay */}
-        <div className="absolute inset-0 pointer-events-none opacity-[0.03]" style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 400 400' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E")`, mixBlendMode: "overlay" }}></div>
-        
-        {/* Floating Cards (Background decoration) */}
-        <div className="absolute inset-0 pointer-events-none">
-          {/* Card 1: John Snow */}
-          <div className="absolute top-20 left-10 opacity-10 transform rotate-[-8deg] pointer-events-none hidden lg:block">
-            <div className="bg-white/20 backdrop-blur-md rounded-2xl p-6 border border-white/30 w-72 shadow-2xl">
-              <div className="flex items-center gap-3 mb-4">
-                <div className="w-14 h-14 rounded-full bg-gradient-to-br from-purple-400 to-pink-400 border-2 border-white/50 flex items-center justify-center text-white font-bold text-xl">JS</div>
-                <div>
-                  <div className="text-white font-semibold text-lg">John Snow</div>
-                  <div className="text-white/70 text-sm">Class of '28</div>
-                </div>
-              </div>
-              <div className="space-y-2 mb-4 text-white/60 text-sm">
-                <p>Computer Science Major</p>
-                <p>Night owl • Clean freak • Gamer</p>
-              </div>
-              <div className="flex gap-2">
-                <div className="px-3 py-1 bg-white/30 rounded-full text-white text-xs">🎮 Gaming</div>
-                <div className="px-3 py-1 bg-white/30 rounded-full text-white text-xs">📚 Studying</div>
-              </div>
-            </div>
-          </div>
-
-          {/* Card 2: Compatibility Match */}
-          <div className="absolute top-40 right-16 opacity-10 transform rotate-[12deg] pointer-events-none hidden lg:block">
-            <div className="bg-white/20 backdrop-blur-md rounded-2xl p-8 border border-white/30 w-64 shadow-2xl">
-              <div className="text-center">
-                <div className="text-6xl font-bold mb-3 text-white">92%</div>
-                <div className="text-white font-semibold mb-4">Compatibility Match</div>
-                <div className="space-y-3 text-left">
-                  <div className="flex justify-between text-white/70 text-sm"><span>Sleep Schedule</span><span className="text-white font-semibold">95%</span></div>
-                  <div className="flex justify-between text-white/70 text-sm"><span>Cleanliness</span><span className="text-white font-semibold">88%</span></div>
-                  <div className="flex justify-between text-white/70 text-sm"><span>Social Habits</span><span className="text-white font-semibold">93%</span></div>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Card 3: Housing Preferences */}
-          <div className="absolute bottom-32 left-20 opacity-10 transform rotate-[6deg] pointer-events-none hidden xl:block">
-            <div className="bg-white/20 backdrop-blur-md rounded-2xl p-6 border border-white/30 w-72 shadow-2xl">
-              <div className="flex items-center gap-2 mb-4">
-                <span className="text-xl">🏠</span>
-                <div className="text-white font-semibold">Housing Preferences</div>
-              </div>
-              <div className="flex flex-wrap gap-2 mb-4">
-                <div className="px-4 py-2 bg-white/30 rounded-full border border-white/20 text-white text-xs">📍 On Campus</div>
-                <div className="px-4 py-2 bg-white/30 rounded-full border border-white/20 text-white text-xs">💰 $800-1200/mo</div>
-                <div className="px-4 py-2 bg-white/30 rounded-full border border-white/20 text-white text-xs">🛏️ Private Room</div>
-              </div>
-              <div className="text-white/60 text-sm mb-2">Move-in: Fall 2026</div>
-              <div className="h-2 w-full bg-white/20 rounded-full overflow-hidden">
-                <div className="h-full w-3/4 bg-gradient-to-r from-purple-400 to-pink-400 rounded-full"></div>
-              </div>
-            </div>
-          </div>
-
-          {/* Card 4: Sleep Schedule */}
-          <div className="absolute bottom-48 right-24 opacity-10 transform rotate-[-10deg] pointer-events-none hidden xl:block">
-            <div className="bg-white/20 backdrop-blur-md rounded-2xl p-6 border border-white/30 w-56 shadow-2xl">
-              <div className="flex items-center gap-3 mb-4">
-                <span className="text-2xl">⏰</span>
-                <div className="text-white font-semibold">Sleep Schedule</div>
-              </div>
-              <div className="space-y-2">
-                <div className="flex items-center justify-between text-white/70 text-sm"><span>Bedtime</span><span className="text-white">11 PM - 1 AM</span></div>
-                <div className="flex items-center justify-between text-white/70 text-sm"><span>Wake up</span><span className="text-white">7 AM - 9 AM</span></div>
-              </div>
-            </div>
-          </div>
-
-          {/* Card 5: Matched */}
-          <div className="absolute top-1/3 right-1/4 opacity-8 transform rotate-[-5deg] pointer-events-none hidden xl:block">
-            <div className="bg-white/20 backdrop-blur-md rounded-2xl p-5 border border-white/30 w-52 shadow-2xl">
-              <div className="text-center mb-3">
-                <span className="text-3xl mb-2 block">✨</span>
-                <div className="text-white font-semibold">Matched!</div>
-              </div>
-              <div className="space-y-1 text-white/70 text-sm text-center">
-                <p>You both like quiet spaces</p>
-                <p>Similar study schedules</p>
-              </div>
-            </div>
-          </div>
+      <section id="home" className="relative overflow-hidden bg-[#443143] text-white">
+        <div className="absolute inset-0 overflow-hidden">
+          <div className="absolute w-[600px] h-[600px] rounded-full blur-3xl" style={{ background: "radial-gradient(circle, rgb(184, 156, 255) 0%, transparent 70%)" }}></div>
+          <div className="absolute w-[800px] h-[800px] rounded-full blur-3xl" style={{ background: "radial-gradient(circle, rgb(244, 204, 245) 0%, transparent 70%)" }}></div>
+          <div className="absolute w-[400px] h-[400px] rounded-full blur-3xl" style={{ background: "radial-gradient(circle, rgb(216, 180, 254) 0%, transparent 70%)", top: "43.2354%", right: "23.2354%" }}></div>
         </div>
-
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 w-full relative z-10">
-          <div className="text-center mb-12">
-            <h1 className="text-5xl md:text-6xl font-bold text-white mb-6 leading-tight">
-              Find Your Perfect
-              <span 
-                className="block text-transparent bg-clip-text font-black" 
-                style={{ 
-                  backgroundImage: "linear-gradient(to right, rgb(184, 156, 255), rgb(192, 132, 252))", 
-                  filter: "drop-shadow(rgba(255, 255, 255, 0.4) 0px 0px 40px) drop-shadow(rgba(255, 255, 255, 0.4) 0px 0px 60px)" 
-                }}
-              >
-                Roommate
-              </span>
-            </h1>
-            <p className="text-xl text-neutral-350 max-w-2xl mx-auto leading-relaxed">
-              RoomSync is the roommate-matching app built specifically for college students. Less anxiety, more compatibility — all in one place.
-            </p>
-          </div>
-
-          <div className="flex justify-center">
-            <button 
-              className="text-black py-4 px-12 rounded-full font-semibold transition-all duration-300 text-lg border border-black/10 relative overflow-hidden group" 
-              style={{ 
-                backgroundColor: "rgb(244, 204, 245)", 
-                boxShadow: "rgba(244, 204, 245, 0.4) 0px 8px 24px, rgba(244, 204, 245, 0.3) 0px 4px 12px" 
-              }}
-              onClick={onStart}
-            >
-              <span className="relative z-10">{ctaLabel}</span>
-              <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300" style={{ background: "radial-gradient(circle, rgba(255, 255, 255, 0.3) 0%, transparent 70%)" }}></div>
-            </button>
-          </div>
-
-          {/* Stats Cards */}
-          <div className="grid grid-cols-3 gap-4 mt-12 max-w-3xl mx-auto w-full">
-            {[
-              { value: "100%", label: "Student Focused", delay: "0s" },
-              { value: "3-Step", label: "Match Process", delay: "0.15s" },
-              { value: "Fall 2026", label: "Launching", delay: "0.3s" }
-            ].map(({ value, label, delay }) => (
-              <div 
-                key={label}
-                className="bg-white/10 backdrop-blur-md rounded-2xl p-4 text-center border border-white/30 shadow-lg transition-all duration-300 ease-out hover:-translate-y-1.5 hover:border-purple-300 hover:shadow-2xl hover:shadow-purple-400/30 animate-[fadeUp_0.6s_ease-out_both]"
-                style={{ animationDelay: delay }}
-              >
-                <div className="text-2xl font-bold text-white font-sans">{value}</div>
-                <div className="text-sm text-neutral-300 font-sans">{label}</div>
+        <div className="absolute inset-0 pointer-events-none opacity-[0.015]" style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 400 400' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E")`, mixBlendMode: "overlay" }}></div>
+        <div className="relative z-10 min-h-screen flex items-center py-24 md:py-32">
+          <div className="max-w-7xl mx-auto px-6 sm:px-8 lg:px-12 w-full">
+            <div className="text-center max-w-5xl mx-auto">
+              <div className="mb-8 inline-flex items-center gap-2 px-5 py-2 rounded-full bg-white/10 backdrop-blur-sm border border-white/20">
+                <div className="w-2 h-2 rounded-full bg-gradient-to-r from-purple-400 to-pink-400 animate-pulse"></div>
+                <span className="text-white/90 text-sm tracking-wide">Launching Fall 2026</span>
               </div>
-            ))}
+              <div className="mb-8 min-h-[200px] md:min-h-[280px] flex flex-col items-center justify-center">
+                <h1>
+                  <span className="block text-white text-5xl md:text-7xl lg:text-8xl tracking-tight leading-[1.1] mb-4">Join the Future</span>
+                  <span className="block text-transparent bg-clip-text text-5xl md:text-7xl lg:text-8xl tracking-tight leading-[1.1] font-black" style={{ backgroundImage: "linear-gradient(135deg, rgb(184, 156, 255) 0%, rgb(244, 204, 245) 50%, rgb(216, 180, 254) 100%)", backgroundClip: "text", WebkitBackgroundClip: "text" }}>Fall 2026</span>
+                </h1>
+              </div>
+              <div className="min-h-[80px] mb-14">
+                <p className="text-xl md:text-2xl text-white/70 max-w-3xl mx-auto leading-relaxed">
+                  Be part of the first wave. Starting at Rutgers University and expanding to Big Ten schools.
+                </p>
+              </div>
+              <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-20">
+                <button
+                  onClick={onStart}
+                  className="group relative inline-flex items-center justify-center px-10 py-5 overflow-hidden rounded-full transition-all duration-500 hover:scale-105"
+                  style={{ backgroundColor: "rgb(244, 204, 245)" }}
+                >
+                  <span className="relative z-10 text-black text-lg font-bold tracking-tight">{ctaLabel}</span>
+                  <div className="absolute inset-0" style={{ background: "linear-gradient(135deg, rgba(255, 255, 255, 0.3) 0%, transparent 100%)", opacity: 0 }}></div>
+                </button>
+              </div>
+              <div className="flex justify-center gap-3 mb-12">
+                <button className="relative h-1.5 rounded-full overflow-hidden transition-all duration-300" style={{ width: "48px" }}>
+                  <div className="absolute inset-0 bg-white/20"></div>
+                  <div className="absolute inset-0" style={{ transformOrigin: "left center", transform: "scaleX(0.5)" }}></div>
+                </button>
+                <button className="relative h-1.5 rounded-full overflow-hidden transition-all duration-300" style={{ width: "24px" }}>
+                  <div className="absolute inset-0 bg-white/20"></div>
+                </button>
+                <button className="relative h-1.5 rounded-full overflow-hidden transition-all duration-300" style={{ width: "24px" }}>
+                  <div className="absolute inset-0 bg-white/20"></div>
+                </button>
+              </div>
+              <div className="max-w-xs mx-auto">
+                <div className="group relative overflow-hidden rounded-2xl p-8" style={{ background: "rgba(255, 255, 255, 0.05)", backdropFilter: "blur(20px)", border: "1px solid rgba(255, 255, 255, 0.1)" }}>
+                  <div className="relative z-10">
+                    <div className="text-5xl text-white mb-3 tracking-tight font-bold">Fall 2026</div>
+                    <div className="text-white/60 tracking-wide text-sm font-medium">Launching</div>
+                  </div>
+                  <div className="absolute inset-0" style={{ background: "linear-gradient(135deg, rgba(184, 156, 255, 0.1) 0%, transparent 100%)", opacity: 0 }}></div>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       </section>
 
-      {/* About Section */}
-      <section id="about" className="py-32 bg-neutral-50 dark:bg-neutral-900 min-h-screen flex items-center transition-colors duration-300">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 w-full">
-          <div className="text-center mb-12">
-            <h2 className="text-3xl md:text-4xl font-bold text-neutral-900 dark:text-white mb-4 font-display">Why Choose RoomSync?</h2>
-            <p className="text-lg text-neutral-600 dark:text-neutral-300 max-w-2xl mx-auto">
-              We built RoomSync so you never have to post in a random group chat again.
+      {/* Why Choose Section */}
+      <section id="about" className="relative py-32 md:py-40 overflow-hidden transition-colors duration-300 bg-neutral-50 dark:bg-neutral-900">
+        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full max-w-4xl h-96 blur-3xl pointer-events-none" style={{ background: "radial-gradient(circle, rgb(244, 204, 245) 0%, transparent 70%)", opacity: 0.3 }}></div>
+        <div className="relative z-10 max-w-7xl mx-auto px-6 sm:px-8 lg:px-12">
+          <div className="text-center mb-20 max-w-3xl mx-auto">
+            <h2 className="text-4xl md:text-5xl lg:text-6xl tracking-tight text-neutral-900 dark:text-white mb-6 font-bold">Why Choose Roomora?</h2>
+            <p className="text-lg md:text-xl text-neutral-600 dark:text-neutral-400 leading-relaxed font-medium">
+              We built Roomora so you never have to post in a random group chat again.
             </p>
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {/* Feature 1 */}
-            <div className="bg-white dark:bg-neutral-800 rounded-xl p-6 shadow-sm hover:shadow-lg transition-all duration-300 border border-neutral-100 dark:border-neutral-700/50">
-              <div className="w-12 h-12 rounded-lg flex items-center justify-center mb-4 bg-[#f4ccf5]">
-                <Shield className="w-6 h-6 text-black" />
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 lg:gap-8">
+            <div className="group relative overflow-hidden rounded-3xl p-10 bg-white dark:bg-neutral-800" style={{ boxShadow: "rgba(0, 0, 0, 0.06) 0px 4px 24px" }}>
+              <div className="absolute inset-0 pointer-events-none" style={{ background: "linear-gradient(135deg, rgba(244, 204, 245, 0.1) 0%, transparent 100%)", opacity: 0 }}></div>
+              <div className="relative z-10">
+                <div className="w-16 h-16 rounded-2xl flex items-center justify-center mb-8 bg-[#f4ccf5]" style={{ backgroundColor: "rgb(244, 204, 245)" }}>
+                  <Shield className="w-8 h-8 text-black" />
+                </div>
+                <h3 className="text-2xl tracking-tight text-neutral-900 dark:text-white mb-4 font-bold">Verified Users</h3>
+                <p className="text-neutral-600 dark:text-neutral-300 leading-relaxed text-base">
+                  All users go through identity verification for your safety and peace of mind.
+                </p>
               </div>
-              <h3 className="text-xl font-semibold text-neutral-900 dark:text-white mb-2 font-display">Verified Users</h3>
-              <p className="text-neutral-600 dark:text-neutral-300 leading-relaxed">
-                All users go through university email verification for safety and peace of mind.
-              </p>
             </div>
-            {/* Feature 2 */}
-            <div className="bg-white dark:bg-neutral-800 rounded-xl p-6 shadow-sm hover:shadow-lg transition-all duration-300 border border-neutral-100 dark:border-neutral-700/50">
-              <div className="w-12 h-12 rounded-lg flex items-center justify-center mb-4 bg-[#f4ccf5]">
-                <Search className="w-6 h-6 text-black" />
+            <div className="group relative overflow-hidden rounded-3xl p-10 bg-white dark:bg-neutral-800" style={{ boxShadow: "rgba(0, 0, 0, 0.06) 0px 4px 24px" }}>
+              <div className="absolute inset-0 pointer-events-none" style={{ background: "linear-gradient(135deg, rgba(244, 204, 245, 0.1) 0%, transparent 100%)", opacity: 0 }}></div>
+              <div className="relative z-10">
+                <div className="w-16 h-16 rounded-2xl flex items-center justify-center mb-8 bg-[#f4ccf5]" style={{ backgroundColor: "rgb(244, 204, 245)" }}>
+                  <Search className="w-8 h-8 text-black" />
+                </div>
+                <h3 className="text-2xl tracking-tight text-neutral-900 dark:text-white mb-4 font-bold">Smart Matching</h3>
+                <p className="text-neutral-600 dark:text-neutral-300 leading-relaxed text-base">
+                  Our algorithm matches you with compatible roommates based on lifestyle and preferences.
+                </p>
               </div>
-              <h3 className="text-xl font-semibold text-neutral-900 dark:text-white mb-2 font-display">Smart Matching</h3>
-              <p className="text-neutral-600 dark:text-neutral-300 leading-relaxed">
-                Our algorithm matches you with compatible roommates based on lifestyle and preferences.
-              </p>
             </div>
-            {/* Feature 3 */}
-            <div className="bg-white dark:bg-neutral-800 rounded-xl p-6 shadow-sm hover:shadow-lg transition-all duration-300 border border-neutral-100 dark:border-neutral-700/50">
-              <div className="w-12 h-12 rounded-lg flex items-center justify-center mb-4 bg-[#f4ccf5]">
-                <MessageCircle className="w-6 h-6 text-black" />
+            <div className="group relative overflow-hidden rounded-3xl p-10 bg-white dark:bg-neutral-800" style={{ boxShadow: "rgba(0, 0, 0, 0.06) 0px 4px 24px" }}>
+              <div className="absolute inset-0 pointer-events-none" style={{ background: "linear-gradient(135deg, rgba(244, 204, 245, 0.1) 0%, transparent 100%)", opacity: 0 }}></div>
+              <div className="relative z-10">
+                <div className="w-16 h-16 rounded-2xl flex items-center justify-center mb-8 bg-[#f4ccf5]" style={{ backgroundColor: "rgb(244, 204, 245)" }}>
+                  <MessageCircle className="w-8 h-8 text-black" />
+                </div>
+                <h3 className="text-2xl tracking-tight text-neutral-900 dark:text-white mb-4 font-bold">Instant Messaging</h3>
+                <p className="text-neutral-600 dark:text-neutral-300 leading-relaxed text-base">
+                  Connect with potential roommates instantly through our secure messaging platform.
+                </p>
               </div>
-              <h3 className="text-xl font-semibold text-neutral-900 dark:text-white mb-2 font-display">Instant Messaging</h3>
-              <p className="text-neutral-600 dark:text-neutral-300 leading-relaxed">
-                Connect with potential roommates through secure messaging after a mutual match.
-              </p>
             </div>
           </div>
         </div>
       </section>
 
       {/* How It Works Section */}
-      <section id="how-it-works" className="py-32 bg-white dark:bg-neutral-800 min-h-screen flex items-center transition-colors duration-300 border-t border-neutral-100 dark:border-neutral-700/50">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 w-full">
-          <div className="text-center mb-12">
-            <h2 className="text-3xl md:text-4xl font-bold text-neutral-900 dark:text-white mb-4 font-display">How It Works</h2>
-            <p className="text-lg text-neutral-600 dark:text-neutral-300 max-w-2xl mx-auto">Your Next Roommate Match Starts Here</p>
+      <section id="how-it-works" className="relative py-32 md:py-40 overflow-hidden transition-colors duration-300 bg-white dark:bg-neutral-800">
+        <div className="absolute top-20 right-0 w-96 h-96 rounded-full blur-3xl pointer-events-none" style={{ background: "radial-gradient(circle, rgb(184, 156, 255) 0%, transparent 70%)", opacity: 0.2 }}></div>
+        <div className="absolute bottom-20 left-0 w-96 h-96 rounded-full blur-3xl pointer-events-none" style={{ background: "radial-gradient(circle, rgb(244, 204, 245) 0%, transparent 70%)", opacity: 0.2 }}></div>
+        <div className="relative z-10 max-w-7xl mx-auto px-6 sm:px-8 lg:px-12">
+          <div className="text-center mb-24 max-w-3xl mx-auto">
+            <h2 className="text-4xl md:text-5xl lg:text-6xl tracking-tight text-neutral-900 dark:text-white mb-6 font-bold">How It Works</h2>
+            <p className="text-lg md:text-xl text-neutral-600 dark:text-neutral-400 leading-relaxed font-medium">Your Next Roommate Match Starts Here</p>
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            <div className="text-center">
-              <div className="inline-block mb-4">
-                <div className="w-16 h-16 rounded-xl bg-neutral-50 dark:bg-neutral-700 border-2 border-neutral-200 dark:border-neutral-600 flex items-center justify-center transition-colors duration-300">
-                  <UserPlus className="w-8 h-8 text-neutral-700 dark:text-white" />
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-12 lg:gap-16 max-w-6xl mx-auto">
+            <div className="relative text-center group">
+              <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-4 text-[120px] font-bold opacity-[0.03] dark:opacity-[0.08] pointer-events-none select-none tracking-tighter">01</div>
+              <div className="relative inline-block mb-8">
+                <div className="w-24 h-24 rounded-3xl flex items-center justify-center bg-[#f4ccf5]" style={{ backgroundColor: "rgb(244, 204, 245)", boxShadow: "rgba(244, 204, 245, 0.3) 0px 8px 32px" }}>
+                  <UserPlus className="w-12 h-12 text-black" />
                 </div>
+                <div className="absolute -top-3 -right-3 w-10 h-10 rounded-full flex items-center justify-center text-white text-sm font-bold" style={{ background: "linear-gradient(135deg, rgb(184, 156, 255) 0%, rgb(216, 180, 254) 100%)" }}>01</div>
               </div>
-              <h3 className="text-lg font-semibold text-neutral-900 dark:text-white mb-2 font-display">Create Your Profile</h3>
-              <p className="text-sm text-neutral-600 dark:text-neutral-300 max-w-md mx-auto">
+              <h3 className="text-2xl tracking-tight text-neutral-900 dark:text-white mb-4 font-bold">Create Your Profile</h3>
+              <p className="text-base text-neutral-600 dark:text-neutral-400 leading-relaxed max-w-xs mx-auto">
                 Share your lifestyle, budget, and housing preferences in minutes.
               </p>
+              <div className="hidden md:block absolute top-12 left-[60%] w-[80%] h-0.5 bg-gradient-to-r from-neutral-200 dark:from-neutral-700 to-transparent"></div>
             </div>
-            <div className="text-center">
-              <div className="inline-block mb-4">
-                <div className="w-16 h-16 rounded-xl bg-neutral-50 dark:bg-neutral-700 border-2 border-neutral-200 dark:border-neutral-600 flex items-center justify-center transition-colors duration-300">
-                  <Search className="w-8 h-8 text-neutral-700 dark:text-white" />
+            <div className="relative text-center group">
+              <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-4 text-[120px] font-bold opacity-[0.03] dark:opacity-[0.08] pointer-events-none select-none tracking-tighter">02</div>
+              <div className="relative inline-block mb-8">
+                <div className="w-24 h-24 rounded-3xl flex items-center justify-center bg-[#f4ccf5]" style={{ backgroundColor: "rgb(244, 204, 245)", boxShadow: "rgba(244, 204, 245, 0.3) 0px 8px 32px" }}>
+                  <Search className="w-12 h-12 text-black" />
                 </div>
+                <div className="absolute -top-3 -right-3 w-10 h-10 rounded-full flex items-center justify-center text-white text-sm font-bold" style={{ background: "linear-gradient(135deg, rgb(184, 156, 255) 0%, rgb(216, 180, 254) 100%)" }}>02</div>
               </div>
-              <h3 className="text-lg font-semibold text-neutral-900 dark:text-white mb-2 font-display">Browse & Match</h3>
-              <p className="text-sm text-neutral-600 dark:text-neutral-300 max-w-md mx-auto">
+              <h3 className="text-2xl tracking-tight text-neutral-900 dark:text-white mb-4 font-bold">Browse &amp; Match</h3>
+              <p className="text-base text-neutral-600 dark:text-neutral-400 leading-relaxed max-w-xs mx-auto">
                 Browse compatibility-ranked profiles. Like the ones that feel right.
               </p>
+              <div className="hidden md:block absolute top-12 left-[60%] w-[80%] h-0.5 bg-gradient-to-r from-neutral-200 dark:from-neutral-700 to-transparent"></div>
             </div>
-            <div className="text-center">
-              <div className="inline-block mb-4">
-                <div className="w-16 h-16 rounded-xl bg-neutral-50 dark:bg-neutral-700 border-2 border-neutral-200 dark:border-neutral-600 flex items-center justify-center transition-colors duration-300">
-                  <MessageCircle className="w-8 h-8 text-neutral-700 dark:text-white" />
+            <div className="relative text-center group">
+              <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-4 text-[120px] font-bold opacity-[0.03] dark:opacity-[0.08] pointer-events-none select-none tracking-tighter">03</div>
+              <div className="relative inline-block mb-8">
+                <div className="w-24 h-24 rounded-3xl flex items-center justify-center bg-[#f4ccf5]" style={{ backgroundColor: "rgb(244, 204, 245)", boxShadow: "rgba(244, 204, 245, 0.3) 0px 8px 32px" }}>
+                  <MessageCircle className="w-12 h-12 text-black" />
                 </div>
+                <div className="absolute -top-3 -right-3 w-10 h-10 rounded-full flex items-center justify-center text-white text-sm font-bold" style={{ background: "linear-gradient(135deg, rgb(184, 156, 255) 0%, rgb(216, 180, 254) 100%)" }}>03</div>
               </div>
-              <h3 className="text-lg font-semibold text-neutral-900 dark:text-white mb-2 font-display">Connect & Chat</h3>
-              <p className="text-sm text-neutral-600 dark:text-neutral-300 max-w-md mx-auto">
+              <h3 className="text-2xl tracking-tight text-neutral-900 dark:text-white mb-4 font-bold">Connect &amp; Chat</h3>
+              <p className="text-base text-neutral-600 dark:text-neutral-400 leading-relaxed max-w-xs mx-auto">
                 Chat, confirm details, and sign that lease — stress free.
               </p>
             </div>
@@ -704,51 +636,74 @@ function HomeScreen({
       </section>
 
       {/* FAQs Section */}
-      <section id="faqs" className="py-32 bg-neutral-50 dark:bg-neutral-900 transition-colors duration-300 border-t border-neutral-100 dark:border-neutral-700/50">
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 w-full">
-          <div className="text-center mb-12">
-            <h2 className="text-3xl md:text-4xl font-bold text-neutral-900 dark:text-white mb-4 font-display">Frequently Asked Questions</h2>
+      <section id="faqs" className="relative py-32 md:py-40 overflow-hidden transition-colors duration-300 bg-neutral-50 dark:bg-neutral-900 border-t border-neutral-100 dark:border-neutral-700/50">
+        <div className="max-w-4xl mx-auto px-6 sm:px-8 lg:px-12 w-full">
+          <div className="text-center mb-16">
+            <h2 className="text-4xl md:text-5xl tracking-tight text-neutral-900 dark:text-white mb-4 font-bold">Frequently Asked Questions</h2>
           </div>
           <div className="space-y-6">
-            <div className="bg-white dark:bg-neutral-800 rounded-xl p-6 shadow-sm border border-neutral-100 dark:border-neutral-700">
-              <h3 className="text-lg font-semibold text-neutral-900 dark:text-white mb-2 font-display">Who can join?</h3>
-              <p className="text-neutral-600 dark:text-neutral-300">RoomSync is starting with verified student email access. You must sign in using a Rutgers ScarletMail address.</p>
+            <div className="bg-white dark:bg-neutral-800 rounded-3xl p-8 shadow-sm border border-neutral-100 dark:border-neutral-700/50">
+              <h3 className="text-xl font-bold text-neutral-900 dark:text-white mb-3">Who can join?</h3>
+              <p className="text-neutral-600 dark:text-neutral-350 leading-relaxed">
+                Roomora is starting with verified student email access. You must sign in using a Rutgers ScarletMail address.
+              </p>
             </div>
-            <div className="bg-white dark:bg-neutral-800 rounded-xl p-6 shadow-sm border border-neutral-100 dark:border-neutral-700">
-              <h3 className="text-lg font-semibold text-neutral-900 dark:text-white mb-2 font-display">When can I message?</h3>
-              <p className="text-neutral-600 dark:text-neutral-300">Messaging unlocks only after a mutual match, so you don't have to worry about unwanted DMs from strangers.</p>
+            <div className="bg-white dark:bg-neutral-800 rounded-3xl p-8 shadow-sm border border-neutral-100 dark:border-neutral-700/50">
+              <h3 className="text-xl font-bold text-neutral-900 dark:text-white mb-3">When can I message?</h3>
+              <p className="text-neutral-600 dark:text-neutral-350 leading-relaxed">
+                Messaging unlocks only after a mutual match, so you don't have to worry about unwanted DMs from strangers.
+              </p>
             </div>
-            <div className="bg-white dark:bg-neutral-800 rounded-xl p-6 shadow-sm border border-neutral-100 dark:border-neutral-700">
-              <h3 className="text-lg font-semibold text-neutral-900 dark:text-white mb-2 font-display">How many swipes do I get?</h3>
-              <p className="text-neutral-600 dark:text-neutral-300">To maintain high quality connections, students get 30 swipes every 12 hours.</p>
+            <div className="bg-white dark:bg-neutral-800 rounded-3xl p-8 shadow-sm border border-neutral-100 dark:border-neutral-700/50">
+              <h3 className="text-xl font-bold text-neutral-900 dark:text-white mb-3">How many swipes do I get?</h3>
+              <p className="text-neutral-600 dark:text-neutral-350 leading-relaxed">
+                To maintain high quality connections, students get 30 swipes every 12 hours.
+              </p>
             </div>
           </div>
         </div>
       </section>
 
       {/* Footer / Bottom CTA Section */}
-      <section className="bg-neutral-900 dark:bg-black py-32 min-h-[80vh] flex items-center transition-colors duration-300">
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 w-full text-center">
-          <div className="mb-8 flex justify-center">
-            <div className="w-24 h-24 rounded-2xl flex items-center justify-center bg-black border-2 border-white/20 shadow-2xl">
-              <Home className="w-12 h-12 text-white" />
+      <section className="relative py-32 md:py-40 overflow-hidden transition-colors duration-300 bg-neutral-900 dark:bg-black">
+        <div className="absolute inset-0 overflow-hidden">
+          <div className="absolute w-[1000px] h-[1000px] rounded-full blur-3xl" style={{ background: "radial-gradient(circle, rgb(184, 156, 255) 0%, transparent 70%)", top: "-27.6153%", left: "47.3847%" }}></div>
+          <div className="absolute w-[800px] h-[800px] rounded-full blur-3xl" style={{ background: "radial-gradient(circle, rgb(244, 204, 245) 0%, transparent 70%)", bottom: "-29.9989%", right: "-19.9989%" }}></div>
+        </div>
+        <div className="relative z-10 max-w-5xl mx-auto px-6 sm:px-8 lg:px-12 text-center">
+          <div className="mb-12 flex justify-center">
+            <div className="w-28 h-28 rounded-3xl flex items-center justify-center shadow-2xl" style={{ background: "linear-gradient(135deg, rgb(184, 156, 255) 0%, rgb(244, 204, 245) 100%)", boxShadow: "rgba(184, 156, 255, 0.4) 0px 20px 60px" }}>
+              <Home className="w-14 h-14 text-white" />
             </div>
           </div>
-          <h2 className="text-4xl md:text-5xl font-bold text-white mb-6 font-display">Ready to find your people?</h2>
-          <p className="text-lg text-neutral-400 mb-10 max-w-2xl mx-auto font-medium">
+          <div>
+            <h2 className="text-5xl md:text-6xl lg:text-7xl tracking-tight text-white mb-2 leading-[1.1] font-bold">Ready to find</h2>
+          </div>
+          <div>
+            <h2 className="text-5xl md:text-6xl lg:text-7xl tracking-tight mb-8 leading-[1.1] text-transparent bg-clip-text font-bold" style={{ backgroundImage: "linear-gradient(135deg, rgb(184, 156, 255) 0%, rgb(244, 204, 245) 100%)", backgroundClip: "text", WebkitBackgroundClip: "text" }}>your people?</h2>
+          </div>
+          <p className="text-xl md:text-2xl text-neutral-450 mb-14 max-w-3xl mx-auto leading-relaxed">
             Your Perfect Rutgers Roommate Match Could Start Here
           </p>
-          <button 
-            className="inline-flex items-center gap-3 px-8 py-4 text-black rounded-full font-semibold transition-all shadow-lg text-lg mb-8 hover:opacity-90 hover:scale-105 duration-300" 
-            style={{ backgroundColor: "rgb(244, 204, 245)" }}
-            onClick={onStart}
-          >
-            <Home className="w-5 h-5" />
-            <span>{ctaLabel}</span>
-            <ArrowRight className="w-5 h-5" />
-          </button>
-          <p className="text-sm text-neutral-500 mb-8">Launching at Rutgers University · Expanding to Big Ten schools soon</p>
-          <p className="text-sm text-neutral-600">© 2026 RoomSync. All rights reserved.</p>
+          <div className="mb-16">
+            <button 
+              onClick={onStart} 
+              className="group inline-flex items-center gap-3 px-10 py-5 rounded-full font-bold hover:scale-105 transition-transform duration-300" 
+              style={{ backgroundColor: "rgb(244, 204, 245)", boxShadow: "rgba(244, 204, 245, 0.4) 0px 12px 40px" }}
+            >
+              <div>
+                <Home className="w-6 h-6 text-black" />
+              </div>
+              <span className="text-black text-lg tracking-tight">{ctaLabel}</span>
+              <div className="transition-transform group-hover:translate-x-1">
+                <ArrowRight className="w-6 h-6 text-black" />
+              </div>
+            </button>
+          </div>
+          <div className="space-y-6 pt-8 border-t border-white/10 max-w-2xl mx-auto">
+            <p className="text-neutral-500 leading-relaxed font-medium">Launching at Rutgers University · Expanding to Big Ten schools soon</p>
+            <p className="text-sm text-neutral-600 font-semibold">© 2026 Roomora. All rights reserved.</p>
+          </div>
         </div>
       </section>
     </div>
@@ -793,14 +748,14 @@ function AuthScreen({ onAuthenticated }: { onAuthenticated: () => void }) {
         <p className="text-sm font-bold uppercase tracking-[0.2em] text-teal-200">Rutgers sign in</p>
         <h2 className="font-display mt-2 text-3xl font-black text-white">Use your ScarletMail account.</h2>
         <p className="mt-3 text-slate-300">
-          RoomSync sends a one-time email link and only accepts Rutgers ScarletMail addresses for this MVP.
+          Roomora sends a one-time email link and only accepts Rutgers ScarletMail addresses for this MVP.
         </p>
 
         {sent ? (
           <div className="mt-6 rounded-3xl border border-teal-300/30 bg-teal-300/10 p-5">
             <div className="font-black text-teal-100">Check your email</div>
             <p className="mt-2 text-sm leading-6 text-slate-300">
-              We sent a sign-in link to {email.trim().toLowerCase()}. Open it in this browser, then RoomSync will bring you back to profile setup.
+              We sent a sign-in link to {email.trim().toLowerCase()}. Open it in this browser, then Roomora will bring you back to profile setup.
             </p>
             <button className="mt-4 rounded-2xl border border-slate-700 px-4 py-3 text-sm font-black text-white" onClick={onAuthenticated}>
               I opened the link
@@ -1178,7 +1133,7 @@ function DiscoverScreen({
       <EmptyState
         icon={Lock}
         title="Sign in to discover"
-        body="RoomSync needs a Rutgers ScarletMail session before showing real roommate data."
+        body="Roomora needs a Rutgers ScarletMail session before showing real roommate data."
         actionLabel="Sign in"
         onAction={onAuthenticate}
       />
@@ -1190,7 +1145,7 @@ function DiscoverScreen({
       <EmptyState
         icon={Settings}
         title="Build your profile first"
-        body="RoomSync needs your lifestyle answers before it can score roommate fit."
+        body="Roomora needs your lifestyle answers before it can score roommate fit."
         actionLabel="Complete onboarding"
         onAction={onCompleteProfile}
       />
@@ -1265,17 +1220,17 @@ function ProfileCard({ profile, user, compact = false }: { profile: RoommateProf
   const compatibility = useMemo(() => getCompatibility(user, profile), [user, profile]);
 
   return (
-    <article className="overflow-hidden rounded-[2rem] border border-slate-800 bg-slate-950 shadow-2xl shadow-black/30">
-      <div className="relative min-h-64 bg-gradient-to-br from-slate-800 via-slate-900 to-[#3a0b18] p-5">
-        <div className="absolute right-5 top-5 rounded-full bg-white px-4 py-2 text-sm font-black text-slate-950">
+    <article className="overflow-hidden rounded-[2rem] border border-white/10 bg-white/5 backdrop-blur-md shadow-2xl shadow-black/30">
+      <div className="relative min-h-64 bg-gradient-to-br from-[#443143] via-[#5c3e5a] to-[#251524] p-5">
+        <div className="absolute right-5 top-5 rounded-full bg-[#f4ccf5] px-4 py-2 text-sm font-bold text-black">
           {compatibility.score}% fit
         </div>
         <div className="flex h-full min-h-52 flex-col justify-end">
-          <div className="grid size-20 place-items-center rounded-3xl bg-[#cc0033] text-2xl font-black text-white shadow-xl">
+          <div className="grid size-20 place-items-center rounded-3xl bg-gradient-to-br from-[#cc0033] to-[#990026] text-2xl font-black text-white shadow-xl border border-white/20">
             {profile.avatar}
           </div>
           <h3 className="font-display mt-4 text-3xl font-black text-white">{profile.name}</h3>
-          <p className="mt-1 text-sm text-slate-300">
+          <p className="mt-1 text-sm text-slate-350">
             {profile.year} · {profile.major} · {profile.country}
           </p>
         </div>
@@ -1290,12 +1245,12 @@ function ProfileCard({ profile, user, compact = false }: { profile: RoommateProf
               <Badge>{housingLabels[profile.housing]}</Badge>
               <Badge>{campusLabels[profile.campus]}</Badge>
             </div>
-            <div className="mt-5 rounded-3xl border border-slate-800 bg-slate-900/70 p-4">
+            <div className="mt-5 rounded-3xl border border-white/10 bg-white/5 p-4">
               <div className="mb-2 text-sm font-black text-white">Why this score</div>
               <ul className="space-y-2 text-sm text-slate-300">
                 {compatibility.reasons.map((reason) => (
                   <li key={reason} className="flex gap-2">
-                    <Check className="mt-0.5 size-4 shrink-0 text-teal-300" />
+                    <Check className="mt-0.5 size-4 shrink-0 text-[#f4ccf5]" />
                     {reason}
                   </li>
                 ))}
@@ -1303,7 +1258,7 @@ function ProfileCard({ profile, user, compact = false }: { profile: RoommateProf
             </div>
             <div className="mt-4 flex flex-wrap gap-2">
               {profile.interests.map((interest) => (
-                <span key={interest} className="rounded-full bg-slate-800 px-3 py-1 text-xs text-slate-300">
+                <span key={interest} className="rounded-full bg-white/10 border border-white/5 px-3 py-1 text-xs text-slate-300">
                   {interest}
                 </span>
               ))}
@@ -1402,7 +1357,7 @@ function MessagesScreen({
       <EmptyState
         icon={Lock}
         title="Messages are locked"
-        body="RoomSync only opens chat after a mutual match, so students are not DMing strangers."
+        body="Roomora only opens chat after a mutual match, so students are not DMing strangers."
         actionLabel="Find matches"
         onAction={onFindMatches}
       />
@@ -1554,7 +1509,7 @@ function Field({ label, children }: { label: string; children: ReactNode }) {
 }
 
 function Badge({ children }: { children: ReactNode }) {
-  return <span className="rounded-2xl border border-slate-700 bg-slate-900 px-3 py-2 text-center">{children}</span>;
+  return <span className="rounded-2xl border border-white/10 bg-white/5 px-3 py-2 text-center text-slate-250">{children}</span>;
 }
 
 function Stat({ value, label }: { value: string; label: string }) {
