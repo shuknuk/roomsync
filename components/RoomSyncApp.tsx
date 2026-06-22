@@ -2,6 +2,14 @@
 
 import { useEffect, useMemo, useState } from "react";
 import type { ComponentType, ReactNode } from "react";
+import { Header as LandingHeader } from "./landing/Header";
+import { MorphingHero } from "./landing/MorphingHero";
+import { Features as LandingFeatures } from "./landing/Features";
+import { HowItWorks as LandingHowItWorks } from "./landing/HowItWorks";
+import { FinalCTA as LandingFinalCTA } from "./landing/FinalCTA";
+import { AboutPage } from "./landing/AboutPage";
+import { HowItWorksPage } from "./landing/HowItWorksPage";
+import { FAQsPage } from "./landing/FAQsPage";
 import {
   ArrowRight,
   Check,
@@ -41,7 +49,7 @@ import { loadBackendState, signOut } from "@/lib/roomsync-backend";
 import { rutgersEmailMessage } from "@/lib/supabase/config";
 import type { AppState, Campus, Cleanliness, GuestFrequency, HousingType, NoiseTolerance, RoommateProfile, SleepSchedule, StudyHabit, SwipeDecision, UserProfile } from "@/lib/types";
 
-type View = "home" | "onboarding" | "discover" | "matches" | "messages" | "profile";
+type View = "home" | "onboarding" | "discover" | "matches" | "messages" | "profile" | "about" | "how-it-works" | "faqs";
 
 const navItems: { view: View; label: string; icon: ComponentType<{ className?: string }> }[] = [
   { view: "home", label: "Home", icon: Home },
@@ -80,6 +88,15 @@ export function RoomSyncApp() {
   const [activeThread, setActiveThread] = useState<string | null>(null);
   const [loaded, setLoaded] = useState(false);
   const [status, setStatus] = useState<string | null>(null);
+  const [isDarkMode, setIsDarkMode] = useState(true);
+
+  useEffect(() => {
+    if (isDarkMode) {
+      document.documentElement.classList.add("dark");
+    } else {
+      document.documentElement.classList.remove("dark");
+    }
+  }, [isDarkMode]);
 
   useEffect(() => {
     void refreshState();
@@ -191,7 +208,31 @@ export function RoomSyncApp() {
         onboarded={state.onboarded}
         onStart={() => setView(state.authenticated ? (state.onboarded ? "discover" : "onboarding") : "profile")}
         onNavigate={setView}
+        isDarkMode={isDarkMode}
+        setIsDarkMode={setIsDarkMode}
       />
+    );
+  }
+
+  if (view === "about" || view === "how-it-works" || view === "faqs") {
+    const ctaLabel = state.authenticated ? (state.onboarded ? "Browse Matches" : "Create My Profile") : "Join the Waitlist";
+    const onStart = () => setView(state.authenticated ? (state.onboarded ? "discover" : "onboarding") : "profile");
+    return (
+      <div className={`min-h-screen transition-colors duration-300 ${isDarkMode ? "dark bg-neutral-900 text-white" : "bg-white text-neutral-900"}`}>
+        <LandingHeader 
+          activeView={view}
+          onNavigate={setView}
+          onStart={onStart}
+          authenticated={state.authenticated}
+          isDarkMode={isDarkMode}
+          setIsDarkMode={setIsDarkMode}
+        />
+        <main>
+          {view === "about" && <AboutPage onNavigate={setView} />}
+          {view === "how-it-works" && <HowItWorksPage onNavigate={setView} />}
+          {view === "faqs" && <FAQsPage onNavigate={setView} />}
+        </main>
+      </div>
     );
   }
 
@@ -371,341 +412,34 @@ function HomeScreen({
   onboarded,
   onStart,
   onNavigate,
+  isDarkMode,
+  setIsDarkMode,
 }: {
   authenticated: boolean;
   onboarded: boolean;
   onStart: () => void;
   onNavigate: (view: View) => void;
+  isDarkMode: boolean;
+  setIsDarkMode: (dark: boolean) => void;
 }) {
-  const [isDarkMode, setIsDarkMode] = useState(true);
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-
   const ctaLabel = authenticated ? (onboarded ? "Browse Matches" : "Create My Profile") : "Join the Waitlist";
-
-  useEffect(() => {
-    if (isDarkMode) {
-      document.documentElement.classList.add("dark");
-    } else {
-      document.documentElement.classList.remove("dark");
-    }
-  }, [isDarkMode]);
-
-  function scrollToSection(id: string) {
-    document.getElementById(id)?.scrollIntoView({ behavior: "smooth", block: "start" });
-  }
 
   return (
     <div className={`min-h-screen transition-colors duration-300 ${isDarkMode ? "dark bg-neutral-900 text-white" : "bg-white text-neutral-900"}`}>
-      {/* Header */}
-      <header className="sticky top-0 z-50 backdrop-blur-xl border-b transition-colors duration-300" style={{ backgroundColor: isDarkMode ? "rgba(68, 49, 67, 0.7)" : "rgba(255, 255, 255, 0.8)", borderColor: isDarkMode ? "rgba(255, 255, 255, 0.1)" : "rgba(0, 0, 0, 0.08)" }}>
-        <div className="max-w-7xl mx-auto px-6 sm:px-8 lg:px-12">
-          <div className="flex justify-between items-center h-20">
-            <button className="flex items-center gap-3 group relative text-left" onClick={() => scrollToSection("home")}>
-              <div className="w-11 h-11 rounded-2xl flex items-center justify-center overflow-hidden" style={{ background: "linear-gradient(135deg, rgb(179, 136, 255), rgb(216, 180, 254))" }}>
-                <Home className="w-6 h-6 text-white" />
-              </div>
-              <span className="text-xl tracking-tight font-semibold">
-                <span style={{ color: "rgb(216, 180, 254)" }}>Room</span>
-                <span className={isDarkMode ? "text-white" : "text-neutral-900"}>ora</span>
-              </span>
-            </button>
-            <nav className="hidden md:flex items-center gap-10">
-              <button onClick={() => scrollToSection("home")} className={`relative transition-colors duration-300 text-[15px] font-medium ${isDarkMode ? "text-white/70 hover:text-white" : "text-neutral-600 hover:text-neutral-900"}`}>
-                Home
-              </button>
-              <button onClick={() => scrollToSection("how-it-works")} className={`relative transition-colors duration-300 text-[15px] font-medium ${isDarkMode ? "text-white/70 hover:text-white" : "text-neutral-600 hover:text-neutral-900"}`}>
-                How it Works
-              </button>
-              <button onClick={() => scrollToSection("about")} className={`relative transition-colors duration-300 text-[15px] font-medium ${isDarkMode ? "text-white/70 hover:text-white" : "text-neutral-600 hover:text-neutral-900"}`}>
-                About
-              </button>
-              <button onClick={() => scrollToSection("faqs")} className={`relative transition-colors duration-300 text-[15px] font-medium ${isDarkMode ? "text-white/70 hover:text-white" : "text-neutral-600 hover:text-neutral-900"}`}>
-                FAQs
-              </button>
-            </nav>
-            <div className="flex items-center gap-4">
-              <button 
-                className={`p-2 rounded-lg transition-colors backdrop-blur-sm border ${isDarkMode ? "bg-white/10 text-white hover:bg-white/20 border-white/20" : "bg-black/5 text-neutral-800 hover:bg-black/10 border-black/10"}`} 
-                aria-label="Toggle dark mode"
-                onClick={() => setIsDarkMode(!isDarkMode)}
-              >
-                {isDarkMode ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
-              </button>
-              <button 
-                className={`hidden sm:flex items-center gap-2 px-5 py-2.5 rounded-full font-semibold transition-all ${isDarkMode ? "bg-white/10 text-white hover:bg-white/20 border border-white/20" : "bg-black/5 text-neutral-800 hover:bg-black/10 border border-black/10"}`}
-                onClick={onStart}
-              >
-                <User className="w-4 h-4" />
-                <span>{authenticated ? "Enter App" : "Sign In"}</span>
-              </button>
-              <button 
-                className="md:hidden p-2 rounded-lg hover:bg-white/10 transition-colors duration-300"
-                onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-                aria-label="Toggle menu"
-              >
-                <Menu className={`w-6 h-6 ${isDarkMode ? "text-white" : "text-neutral-955"}`} />
-              </button>
-            </div>
-          </div>
-        </div>
-      </header>
-
-      {/* Mobile Menu */}
-      {mobileMenuOpen && (
-        <div className={`absolute top-20 left-0 right-0 z-40 border-b px-6 py-6 space-y-4 flex flex-col md:hidden shadow-xl backdrop-blur-lg ${isDarkMode ? "bg-[#443143]/95 border-white/10 text-white/90" : "bg-white/95 border-black/10 text-neutral-800"}`}>
-          <button className="text-left py-2 font-medium border-b border-white/5" onClick={() => { scrollToSection("home"); setMobileMenuOpen(false); }}>Home</button>
-          <button className="text-left py-2 font-medium border-b border-white/5" onClick={() => { scrollToSection("how-it-works"); setMobileMenuOpen(false); }}>How it Works</button>
-          <button className="text-left py-2 font-medium border-b border-white/5" onClick={() => { scrollToSection("about"); setMobileMenuOpen(false); }}>About</button>
-          <button className="text-left py-2 font-medium border-b border-white/5" onClick={() => { scrollToSection("faqs"); setMobileMenuOpen(false); }}>FAQs</button>
-          <button 
-            className="flex items-center justify-between py-2 font-semibold pt-4"
-            onClick={() => { onStart(); setMobileMenuOpen(false); }}
-          >
-            <span>{authenticated ? "Enter App" : "Sign In"}</span>
-            <User className="w-5 h-5" />
-          </button>
-        </div>
-      )}
-
-      {/* Hero Section */}
-      <section id="home" className="relative overflow-hidden bg-[#443143] text-white">
-        <div className="absolute inset-0 overflow-hidden">
-          <div className="absolute w-[600px] h-[600px] rounded-full blur-3xl" style={{ background: "radial-gradient(circle, rgb(184, 156, 255) 0%, transparent 70%)" }}></div>
-          <div className="absolute w-[800px] h-[800px] rounded-full blur-3xl" style={{ background: "radial-gradient(circle, rgb(244, 204, 245) 0%, transparent 70%)" }}></div>
-          <div className="absolute w-[400px] h-[400px] rounded-full blur-3xl" style={{ background: "radial-gradient(circle, rgb(216, 180, 254) 0%, transparent 70%)", top: "43.2354%", right: "23.2354%" }}></div>
-        </div>
-        <div className="absolute inset-0 pointer-events-none opacity-[0.015]" style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 400 400' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E")`, mixBlendMode: "overlay" }}></div>
-        <div className="relative z-10 min-h-screen flex items-center py-24 md:py-32">
-          <div className="max-w-7xl mx-auto px-6 sm:px-8 lg:px-12 w-full">
-            <div className="text-center max-w-5xl mx-auto">
-              <div className="mb-8 inline-flex items-center gap-2 px-5 py-2 rounded-full bg-white/10 backdrop-blur-sm border border-white/20">
-                <div className="w-2 h-2 rounded-full bg-gradient-to-r from-purple-400 to-pink-400 animate-pulse"></div>
-                <span className="text-white/90 text-sm tracking-wide">Launching Fall 2026</span>
-              </div>
-              <div className="mb-8 min-h-[200px] md:min-h-[280px] flex flex-col items-center justify-center">
-                <h1>
-                  <span className="block text-white text-5xl md:text-7xl lg:text-8xl tracking-tight leading-[1.1] mb-4">Join the Future</span>
-                  <span className="block text-transparent bg-clip-text text-5xl md:text-7xl lg:text-8xl tracking-tight leading-[1.1] font-black" style={{ backgroundImage: "linear-gradient(135deg, rgb(184, 156, 255) 0%, rgb(244, 204, 245) 50%, rgb(216, 180, 254) 100%)", backgroundClip: "text", WebkitBackgroundClip: "text" }}>Fall 2026</span>
-                </h1>
-              </div>
-              <div className="min-h-[80px] mb-14">
-                <p className="text-xl md:text-2xl text-white/70 max-w-3xl mx-auto leading-relaxed">
-                  Be part of the first wave. Starting at Rutgers University and expanding to Big Ten schools.
-                </p>
-              </div>
-              <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-20">
-                <button
-                  onClick={onStart}
-                  className="group relative inline-flex items-center justify-center px-10 py-5 overflow-hidden rounded-full transition-all duration-500 hover:scale-105"
-                  style={{ backgroundColor: "rgb(244, 204, 245)" }}
-                >
-                  <span className="relative z-10 text-black text-lg font-bold tracking-tight">{ctaLabel}</span>
-                  <div className="absolute inset-0" style={{ background: "linear-gradient(135deg, rgba(255, 255, 255, 0.3) 0%, transparent 100%)", opacity: 0 }}></div>
-                </button>
-              </div>
-              <div className="flex justify-center gap-3 mb-12">
-                <button className="relative h-1.5 rounded-full overflow-hidden transition-all duration-300" style={{ width: "48px" }}>
-                  <div className="absolute inset-0 bg-white/20"></div>
-                  <div className="absolute inset-0" style={{ transformOrigin: "left center", transform: "scaleX(0.5)" }}></div>
-                </button>
-                <button className="relative h-1.5 rounded-full overflow-hidden transition-all duration-300" style={{ width: "24px" }}>
-                  <div className="absolute inset-0 bg-white/20"></div>
-                </button>
-                <button className="relative h-1.5 rounded-full overflow-hidden transition-all duration-300" style={{ width: "24px" }}>
-                  <div className="absolute inset-0 bg-white/20"></div>
-                </button>
-              </div>
-              <div className="max-w-xs mx-auto">
-                <div className="group relative overflow-hidden rounded-2xl p-8" style={{ background: "rgba(255, 255, 255, 0.05)", backdropFilter: "blur(20px)", border: "1px solid rgba(255, 255, 255, 0.1)" }}>
-                  <div className="relative z-10">
-                    <div className="text-5xl text-white mb-3 tracking-tight font-bold">Fall 2026</div>
-                    <div className="text-white/60 tracking-wide text-sm font-medium">Launching</div>
-                  </div>
-                  <div className="absolute inset-0" style={{ background: "linear-gradient(135deg, rgba(184, 156, 255, 0.1) 0%, transparent 100%)", opacity: 0 }}></div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* Why Choose Section */}
-      <section id="about" className="relative py-32 md:py-40 overflow-hidden transition-colors duration-300 bg-neutral-50 dark:bg-neutral-900">
-        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full max-w-4xl h-96 blur-3xl pointer-events-none" style={{ background: "radial-gradient(circle, rgb(244, 204, 245) 0%, transparent 70%)", opacity: 0.3 }}></div>
-        <div className="relative z-10 max-w-7xl mx-auto px-6 sm:px-8 lg:px-12">
-          <div className="text-center mb-20 max-w-3xl mx-auto">
-            <h2 className="text-4xl md:text-5xl lg:text-6xl tracking-tight text-neutral-900 dark:text-white mb-6 font-bold">Why Choose Roomora?</h2>
-            <p className="text-lg md:text-xl text-neutral-600 dark:text-neutral-400 leading-relaxed font-medium">
-              We built Roomora so you never have to post in a random group chat again.
-            </p>
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 lg:gap-8">
-            <div className="group relative overflow-hidden rounded-3xl p-10 bg-white dark:bg-neutral-800" style={{ boxShadow: "rgba(0, 0, 0, 0.06) 0px 4px 24px" }}>
-              <div className="absolute inset-0 pointer-events-none" style={{ background: "linear-gradient(135deg, rgba(244, 204, 245, 0.1) 0%, transparent 100%)", opacity: 0 }}></div>
-              <div className="relative z-10">
-                <div className="w-16 h-16 rounded-2xl flex items-center justify-center mb-8 bg-[#f4ccf5]" style={{ backgroundColor: "rgb(244, 204, 245)" }}>
-                  <Shield className="w-8 h-8 text-black" />
-                </div>
-                <h3 className="text-2xl tracking-tight text-neutral-900 dark:text-white mb-4 font-bold">Verified Users</h3>
-                <p className="text-neutral-600 dark:text-neutral-300 leading-relaxed text-base">
-                  All users go through identity verification for your safety and peace of mind.
-                </p>
-              </div>
-            </div>
-            <div className="group relative overflow-hidden rounded-3xl p-10 bg-white dark:bg-neutral-800" style={{ boxShadow: "rgba(0, 0, 0, 0.06) 0px 4px 24px" }}>
-              <div className="absolute inset-0 pointer-events-none" style={{ background: "linear-gradient(135deg, rgba(244, 204, 245, 0.1) 0%, transparent 100%)", opacity: 0 }}></div>
-              <div className="relative z-10">
-                <div className="w-16 h-16 rounded-2xl flex items-center justify-center mb-8 bg-[#f4ccf5]" style={{ backgroundColor: "rgb(244, 204, 245)" }}>
-                  <Search className="w-8 h-8 text-black" />
-                </div>
-                <h3 className="text-2xl tracking-tight text-neutral-900 dark:text-white mb-4 font-bold">Smart Matching</h3>
-                <p className="text-neutral-600 dark:text-neutral-300 leading-relaxed text-base">
-                  Our algorithm matches you with compatible roommates based on lifestyle and preferences.
-                </p>
-              </div>
-            </div>
-            <div className="group relative overflow-hidden rounded-3xl p-10 bg-white dark:bg-neutral-800" style={{ boxShadow: "rgba(0, 0, 0, 0.06) 0px 4px 24px" }}>
-              <div className="absolute inset-0 pointer-events-none" style={{ background: "linear-gradient(135deg, rgba(244, 204, 245, 0.1) 0%, transparent 100%)", opacity: 0 }}></div>
-              <div className="relative z-10">
-                <div className="w-16 h-16 rounded-2xl flex items-center justify-center mb-8 bg-[#f4ccf5]" style={{ backgroundColor: "rgb(244, 204, 245)" }}>
-                  <MessageCircle className="w-8 h-8 text-black" />
-                </div>
-                <h3 className="text-2xl tracking-tight text-neutral-900 dark:text-white mb-4 font-bold">Instant Messaging</h3>
-                <p className="text-neutral-600 dark:text-neutral-300 leading-relaxed text-base">
-                  Connect with potential roommates instantly through our secure messaging platform.
-                </p>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* How It Works Section */}
-      <section id="how-it-works" className="relative py-32 md:py-40 overflow-hidden transition-colors duration-300 bg-white dark:bg-neutral-800">
-        <div className="absolute top-20 right-0 w-96 h-96 rounded-full blur-3xl pointer-events-none" style={{ background: "radial-gradient(circle, rgb(184, 156, 255) 0%, transparent 70%)", opacity: 0.2 }}></div>
-        <div className="absolute bottom-20 left-0 w-96 h-96 rounded-full blur-3xl pointer-events-none" style={{ background: "radial-gradient(circle, rgb(244, 204, 245) 0%, transparent 70%)", opacity: 0.2 }}></div>
-        <div className="relative z-10 max-w-7xl mx-auto px-6 sm:px-8 lg:px-12">
-          <div className="text-center mb-24 max-w-3xl mx-auto">
-            <h2 className="text-4xl md:text-5xl lg:text-6xl tracking-tight text-neutral-900 dark:text-white mb-6 font-bold">How It Works</h2>
-            <p className="text-lg md:text-xl text-neutral-600 dark:text-neutral-400 leading-relaxed font-medium">Your Next Roommate Match Starts Here</p>
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-12 lg:gap-16 max-w-6xl mx-auto">
-            <div className="relative text-center group">
-              <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-4 text-[120px] font-bold opacity-[0.03] dark:opacity-[0.08] pointer-events-none select-none tracking-tighter">01</div>
-              <div className="relative inline-block mb-8">
-                <div className="w-24 h-24 rounded-3xl flex items-center justify-center bg-[#f4ccf5]" style={{ backgroundColor: "rgb(244, 204, 245)", boxShadow: "rgba(244, 204, 245, 0.3) 0px 8px 32px" }}>
-                  <UserPlus className="w-12 h-12 text-black" />
-                </div>
-                <div className="absolute -top-3 -right-3 w-10 h-10 rounded-full flex items-center justify-center text-white text-sm font-bold" style={{ background: "linear-gradient(135deg, rgb(184, 156, 255) 0%, rgb(216, 180, 254) 100%)" }}>01</div>
-              </div>
-              <h3 className="text-2xl tracking-tight text-neutral-900 dark:text-white mb-4 font-bold">Create Your Profile</h3>
-              <p className="text-base text-neutral-600 dark:text-neutral-400 leading-relaxed max-w-xs mx-auto">
-                Share your lifestyle, budget, and housing preferences in minutes.
-              </p>
-              <div className="hidden md:block absolute top-12 left-[60%] w-[80%] h-0.5 bg-gradient-to-r from-neutral-200 dark:from-neutral-700 to-transparent"></div>
-            </div>
-            <div className="relative text-center group">
-              <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-4 text-[120px] font-bold opacity-[0.03] dark:opacity-[0.08] pointer-events-none select-none tracking-tighter">02</div>
-              <div className="relative inline-block mb-8">
-                <div className="w-24 h-24 rounded-3xl flex items-center justify-center bg-[#f4ccf5]" style={{ backgroundColor: "rgb(244, 204, 245)", boxShadow: "rgba(244, 204, 245, 0.3) 0px 8px 32px" }}>
-                  <Search className="w-12 h-12 text-black" />
-                </div>
-                <div className="absolute -top-3 -right-3 w-10 h-10 rounded-full flex items-center justify-center text-white text-sm font-bold" style={{ background: "linear-gradient(135deg, rgb(184, 156, 255) 0%, rgb(216, 180, 254) 100%)" }}>02</div>
-              </div>
-              <h3 className="text-2xl tracking-tight text-neutral-900 dark:text-white mb-4 font-bold">Browse &amp; Match</h3>
-              <p className="text-base text-neutral-600 dark:text-neutral-400 leading-relaxed max-w-xs mx-auto">
-                Browse compatibility-ranked profiles. Like the ones that feel right.
-              </p>
-              <div className="hidden md:block absolute top-12 left-[60%] w-[80%] h-0.5 bg-gradient-to-r from-neutral-200 dark:from-neutral-700 to-transparent"></div>
-            </div>
-            <div className="relative text-center group">
-              <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-4 text-[120px] font-bold opacity-[0.03] dark:opacity-[0.08] pointer-events-none select-none tracking-tighter">03</div>
-              <div className="relative inline-block mb-8">
-                <div className="w-24 h-24 rounded-3xl flex items-center justify-center bg-[#f4ccf5]" style={{ backgroundColor: "rgb(244, 204, 245)", boxShadow: "rgba(244, 204, 245, 0.3) 0px 8px 32px" }}>
-                  <MessageCircle className="w-12 h-12 text-black" />
-                </div>
-                <div className="absolute -top-3 -right-3 w-10 h-10 rounded-full flex items-center justify-center text-white text-sm font-bold" style={{ background: "linear-gradient(135deg, rgb(184, 156, 255) 0%, rgb(216, 180, 254) 100%)" }}>03</div>
-              </div>
-              <h3 className="text-2xl tracking-tight text-neutral-900 dark:text-white mb-4 font-bold">Connect &amp; Chat</h3>
-              <p className="text-base text-neutral-600 dark:text-neutral-400 leading-relaxed max-w-xs mx-auto">
-                Chat, confirm details, and sign that lease — stress free.
-              </p>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* FAQs Section */}
-      <section id="faqs" className="relative py-32 md:py-40 overflow-hidden transition-colors duration-300 bg-neutral-50 dark:bg-neutral-900 border-t border-neutral-100 dark:border-neutral-700/50">
-        <div className="max-w-4xl mx-auto px-6 sm:px-8 lg:px-12 w-full">
-          <div className="text-center mb-16">
-            <h2 className="text-4xl md:text-5xl tracking-tight text-neutral-900 dark:text-white mb-4 font-bold">Frequently Asked Questions</h2>
-          </div>
-          <div className="space-y-6">
-            <div className="bg-white dark:bg-neutral-800 rounded-3xl p-8 shadow-sm border border-neutral-100 dark:border-neutral-700/50">
-              <h3 className="text-xl font-bold text-neutral-900 dark:text-white mb-3">Who can join?</h3>
-              <p className="text-neutral-600 dark:text-neutral-350 leading-relaxed">
-                Roomora is starting with verified student email access. You must sign in using a Rutgers ScarletMail address.
-              </p>
-            </div>
-            <div className="bg-white dark:bg-neutral-800 rounded-3xl p-8 shadow-sm border border-neutral-100 dark:border-neutral-700/50">
-              <h3 className="text-xl font-bold text-neutral-900 dark:text-white mb-3">When can I message?</h3>
-              <p className="text-neutral-600 dark:text-neutral-350 leading-relaxed">
-                Messaging unlocks only after a mutual match, so you don't have to worry about unwanted DMs from strangers.
-              </p>
-            </div>
-            <div className="bg-white dark:bg-neutral-800 rounded-3xl p-8 shadow-sm border border-neutral-100 dark:border-neutral-700/50">
-              <h3 className="text-xl font-bold text-neutral-900 dark:text-white mb-3">How many swipes do I get?</h3>
-              <p className="text-neutral-600 dark:text-neutral-350 leading-relaxed">
-                To maintain high quality connections, students get 30 swipes every 12 hours.
-              </p>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* Footer / Bottom CTA Section */}
-      <section className="relative py-32 md:py-40 overflow-hidden transition-colors duration-300 bg-neutral-900 dark:bg-black">
-        <div className="absolute inset-0 overflow-hidden">
-          <div className="absolute w-[1000px] h-[1000px] rounded-full blur-3xl" style={{ background: "radial-gradient(circle, rgb(184, 156, 255) 0%, transparent 70%)", top: "-27.6153%", left: "47.3847%" }}></div>
-          <div className="absolute w-[800px] h-[800px] rounded-full blur-3xl" style={{ background: "radial-gradient(circle, rgb(244, 204, 245) 0%, transparent 70%)", bottom: "-29.9989%", right: "-19.9989%" }}></div>
-        </div>
-        <div className="relative z-10 max-w-5xl mx-auto px-6 sm:px-8 lg:px-12 text-center">
-          <div className="mb-12 flex justify-center">
-            <div className="w-28 h-28 rounded-3xl flex items-center justify-center shadow-2xl" style={{ background: "linear-gradient(135deg, rgb(184, 156, 255) 0%, rgb(244, 204, 245) 100%)", boxShadow: "rgba(184, 156, 255, 0.4) 0px 20px 60px" }}>
-              <Home className="w-14 h-14 text-white" />
-            </div>
-          </div>
-          <div>
-            <h2 className="text-5xl md:text-6xl lg:text-7xl tracking-tight text-white mb-2 leading-[1.1] font-bold">Ready to find</h2>
-          </div>
-          <div>
-            <h2 className="text-5xl md:text-6xl lg:text-7xl tracking-tight mb-8 leading-[1.1] text-transparent bg-clip-text font-bold" style={{ backgroundImage: "linear-gradient(135deg, rgb(184, 156, 255) 0%, rgb(244, 204, 245) 100%)", backgroundClip: "text", WebkitBackgroundClip: "text" }}>your people?</h2>
-          </div>
-          <p className="text-xl md:text-2xl text-neutral-450 mb-14 max-w-3xl mx-auto leading-relaxed">
-            Your Perfect Rutgers Roommate Match Could Start Here
-          </p>
-          <div className="mb-16">
-            <button 
-              onClick={onStart} 
-              className="group inline-flex items-center gap-3 px-10 py-5 rounded-full font-bold hover:scale-105 transition-transform duration-300" 
-              style={{ backgroundColor: "rgb(244, 204, 245)", boxShadow: "rgba(244, 204, 245, 0.4) 0px 12px 40px" }}
-            >
-              <div>
-                <Home className="w-6 h-6 text-black" />
-              </div>
-              <span className="text-black text-lg tracking-tight">{ctaLabel}</span>
-              <div className="transition-transform group-hover:translate-x-1">
-                <ArrowRight className="w-6 h-6 text-black" />
-              </div>
-            </button>
-          </div>
-          <div className="space-y-6 pt-8 border-t border-white/10 max-w-2xl mx-auto">
-            <p className="text-neutral-500 leading-relaxed font-medium">Launching at Rutgers University · Expanding to Big Ten schools soon</p>
-            <p className="text-sm text-neutral-600 font-semibold">© 2026 Roomora. All rights reserved.</p>
-          </div>
-        </div>
-      </section>
+      <LandingHeader 
+        activeView="home"
+        onNavigate={onNavigate}
+        onStart={onStart}
+        authenticated={authenticated}
+        isDarkMode={isDarkMode}
+        setIsDarkMode={setIsDarkMode}
+      />
+      <main>
+        <MorphingHero onStart={onStart} ctaLabel={ctaLabel} />
+        <LandingFeatures />
+        <LandingHowItWorks />
+        <LandingFinalCTA onStart={onStart} ctaLabel={ctaLabel} />
+      </main>
     </div>
   );
 }
