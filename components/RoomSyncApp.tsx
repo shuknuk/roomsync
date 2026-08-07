@@ -505,6 +505,9 @@ function AuthScreen({ onAuthenticated }: { onAuthenticated: () => void }) {
             <p className="mt-2 text-sm leading-6 text-slate-300">
               We sent a sign-in link to {email.trim().toLowerCase()}. Open it in this browser, then Roomora will bring you back to profile setup.
             </p>
+            <p className="mt-3 text-sm font-bold text-amber-200">
+              Check your Spam or Junk folder if you do not see it in your inbox. The email may arrive from 🏠 RoomSync.
+            </p>
             <button className="mt-4 rounded-2xl border border-slate-700 px-4 py-3 text-sm font-black text-white" onClick={onAuthenticated}>
               I opened the link
             </button>
