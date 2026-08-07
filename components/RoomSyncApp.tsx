@@ -46,6 +46,7 @@ import {
 } from "@/lib/data";
 import { getCompatibility } from "@/lib/matching";
 import { loadBackendState, signOut } from "@/lib/roomsync-backend";
+import { createClient as createSupabaseClient } from "@/lib/supabase/client";
 import { rutgersEmailMessage } from "@/lib/supabase/config";
 import type { AppState, Campus, Cleanliness, GuestFrequency, HousingType, NoiseTolerance, RoommateProfile, SleepSchedule, StudyHabit, SwipeDecision, UserProfile } from "@/lib/types";
 
@@ -465,11 +466,24 @@ function AuthScreen({ onAuthenticated }: { onAuthenticated: () => void }) {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ email: normalizedEmail }),
     });
-    const result = (await response.json()) as { error?: string };
+    const result = (await response.json()) as { error?: string; emailRedirectTo?: string };
     setSubmitting(false);
 
     if (!response.ok) {
       setError(result.error ?? rutgersEmailMessage);
+      return;
+    }
+
+    const { error: authError } = await createSupabaseClient().auth.signInWithOtp({
+      email: normalizedEmail,
+      options: {
+        shouldCreateUser: true,
+        emailRedirectTo: result.emailRedirectTo,
+      },
+    });
+
+    if (authError) {
+      setError(authError.message);
       return;
     }
 
