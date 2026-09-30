@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import type { ComponentType, ReactNode } from "react";
 import { Header as LandingHeader } from "./landing/Header";
 import { MorphingHero } from "./landing/MorphingHero";
@@ -91,6 +91,28 @@ export function RoomSyncApp() {
   const [status, setStatus] = useState<string | null>(null);
   const [isDarkMode, setIsDarkMode] = useState(true);
 
+  const [demoMode, setDemoMode] = useState(false);
+
+function startDemo() {
+  const demo = createInitialState();
+
+  setDemoMode(true);
+  setState({
+    ...demo,
+    // Local UI state only; this does not create a Supabase session.
+    authenticated: true,
+    authEmail: null,
+    user: {
+      ...demo.user,
+      name: "Demo Visitor",
+      interests: [...demo.user.interests],
+    },
+  });
+  setActiveThread(null);
+  setStatus(null);
+  setView("onboarding");
+}
+
   useEffect(() => {
     if (isDarkMode) {
       document.documentElement.classList.add("dark");
@@ -111,6 +133,21 @@ export function RoomSyncApp() {
   }
 
   async function saveProfile(profile: UserProfile) {
+    if (demoMode) {
+      setState((current) => ({
+        ...current,
+        user: { ...profile, interests: [...profile.interests] },
+        onboarded: true,
+        profiles: [...current.profiles].sort(
+          (a, b) =>
+            getCompatibility(profile, b).score -
+            getCompatibility(profile, a).score
+        ),
+      }));
+      setStatus(null);
+      setView("discover");
+      return;
+    }
     setStatus(null);
     const response = await fetch("/api/profile", {
       method: "POST",
@@ -128,6 +165,48 @@ export function RoomSyncApp() {
   }
 
   async function handleSwipe(profile: RoommateProfile, decision: SwipeDecision) {
+    if (demoMode) {
+      setState((current) => {
+        if (
+          getRemainingSwipes(current) <= 0 ||
+          current.swipes.some((swipe) => swipe.profileId === profile.id)
+        ) {
+          return current;
+        }
+    
+        const matched = decision === "like" && profile.likedYou;
+        const newMatch = matched && !current.matches.includes(profile.id);
+    
+        return {
+          ...current,
+          swipes: [
+            ...current.swipes,
+            {
+              profileId: profile.id,
+              decision,
+              swipedAt: new Date().toISOString(),
+            },
+          ],
+          matches: newMatch
+            ? [...current.matches, profile.id]
+            : current.matches,
+          messages: newMatch
+            ? [
+                ...current.messages,
+                {
+                  id: crypto.randomUUID(),
+                  profileId: profile.id,
+                  sender: "them" as const,
+                  text: "Hi! What does your ideal shared living space look like? (Sample message)",
+                  sentAt: new Date().toISOString(),
+                },
+              ]
+            : current.messages,
+        };
+      });
+      setStatus(null);
+      return;
+    }
     if (getRemainingSwipes(state) <= 0 || state.swipes.some((swipe) => swipe.profileId === profile.id)) {
       return;
     }
@@ -165,6 +244,37 @@ export function RoomSyncApp() {
   }
 
   async function sendMessage(profileId: string, text: string) {
+    if (demoMode) {
+      const body = text.trim();
+      if (!body) return;
+    
+      setState((current) => {
+        if (!current.matches.includes(profileId)) return current;
+    
+        return {
+          ...current,
+          messages: [
+            ...current.messages,
+            {
+              id: crypto.randomUUID(),
+              profileId,
+              sender: "me" as const,
+              text: body,
+              sentAt: new Date().toISOString(),
+            },
+            {
+              id: crypto.randomUUID(),
+              profileId,
+              sender: "them" as const,
+              text: "Thanks for sharing! I'd want to talk about quiet hours, guests, and chores before deciding. (Automated demo reply)",
+              sentAt: new Date().toISOString(),
+            },
+          ],
+        };
+      });
+      setStatus(null);
+      return;
+    }
     const matchId = state.matchIdsByProfileId[profileId];
     if (!matchId) {
       setStatus("Messaging unlocks only after a mutual match.");
@@ -187,6 +297,14 @@ export function RoomSyncApp() {
   }
 
   async function handleSignOut() {
+    if (demoMode) {
+      setDemoMode(false);
+      setActiveThread(null);
+      setStatus(null);
+      setState(createInitialState());
+      await refreshState("home");
+      return;
+    }
     await signOut();
     setActiveThread(null);
     await refreshState("home");
@@ -205,6 +323,7 @@ export function RoomSyncApp() {
   if (view === "home") {
     return (
       <HomeScreen
+        onDemo={startDemo}
         authenticated={state.authenticated}
         onboarded={state.onboarded}
         onStart={() => setView(state.authenticated ? (state.onboarded ? "discover" : "onboarding") : "profile")}
@@ -241,6 +360,24 @@ export function RoomSyncApp() {
     <div className="min-h-screen pb-24 text-slate-100 md:pb-0">
       <TopNav activeView={view} onNavigate={setView} authenticated={state.authenticated} onboarded={state.onboarded} authEmail={state.authEmail} onSignOut={handleSignOut} />
       <main className="mx-auto w-full max-w-6xl px-4 py-5 sm:px-6 lg:px-8">
+      {demoMode && (
+  <div className="mb-5 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-purple-300/30 bg-purple-400/10 px-5 py-4">
+    <div>
+      <p className="font-semibold text-purple-200">Demo mode</p>
+      <p className="mt-1 text-sm text-slate-300">
+        Fictional profiles and simulated replies. Nothing is sent to
+        other users. Refreshing resets this demo.
+      </p>
+    </div>
+    <button
+      type="button"
+      onClick={handleSignOut}
+      className="rounded-full border border-purple-200/30 px-4 py-2 text-sm"
+    >
+      Exit demo
+    </button>
+  </div>
+)}
         {status && (
           <div className="mb-4 rounded-2xl border border-red-400/30 bg-red-500/10 px-4 py-3 text-sm text-red-100">
             {status}
@@ -409,6 +546,7 @@ function BottomNav({
 }
 
 function HomeScreen({
+  onDemo,
   authenticated,
   onboarded,
   onStart,
@@ -416,6 +554,7 @@ function HomeScreen({
   isDarkMode,
   setIsDarkMode,
 }: {
+  onDemo: () => void;
   authenticated: boolean;
   onboarded: boolean;
   onStart: () => void;
@@ -436,6 +575,24 @@ function HomeScreen({
         setIsDarkMode={setIsDarkMode}
       />
       <main>
+      <section className="border-y border-purple-300/20 bg-purple-400/10 px-6 py-5">
+  <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-4">
+    <div>
+      <p className="text-lg font-semibold">Meet your roommate match.</p>
+      <p className="mt-1 text-sm opacity-75">
+        Explore with fictional profiles. No account needed.
+      </p>
+    </div>
+
+    <button
+      type="button"
+      onClick={onDemo}
+      className="rounded-full bg-[#f4ccf5] px-7 py-3 font-semibold text-[#362536] transition hover:bg-purple-200"
+    >
+      Try Demo →
+    </button>
+  </div>
+</section>
         <MorphingHero onStart={onStart} ctaLabel={ctaLabel} />
         <LandingFeatures />
         <LandingHowItWorks />
@@ -904,7 +1061,7 @@ function DiscoverScreen({
   }
 
   return (
-    <section className="grid gap-5 py-4 lg:grid-cols-[minmax(0,1fr)_20rem]">
+    <section className="grid min-w-0 gap-8 py-4">
       <div>
         <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
           <div>
@@ -925,25 +1082,7 @@ function DiscoverScreen({
             onAction={onViewMatches}
           />
         ) : profile ? (
-          <div className="mx-auto max-w-xl">
-            <ProfileCard profile={profile} user={state.user} />
-            <div className="mt-4 grid grid-cols-2 gap-3">
-              <button
-                className="inline-flex min-h-16 items-center justify-center gap-2 rounded-3xl border border-red-400/30 bg-red-500/10 text-lg font-black text-red-100 transition hover:-translate-y-0.5 hover:bg-red-500/20"
-                onClick={() => onSwipe(profile, "pass")}
-              >
-                <X className="size-6" />
-                Pass
-              </button>
-              <button
-                className="inline-flex min-h-16 items-center justify-center gap-2 rounded-3xl bg-teal-300 text-lg font-black text-slate-950 transition hover:-translate-y-0.5"
-                onClick={() => onSwipe(profile, "like")}
-              >
-                <Check className="size-6" />
-                Like
-              </button>
-            </div>
-          </div>
+          <RoommateWheel state={state} onSwipe={onSwipe} />
         ) : (
           <EmptyState
             icon={Check}
@@ -967,7 +1106,285 @@ function DiscoverScreen({
   );
 }
 
-function ProfileCard({ profile, user, compact = false }: { profile: RoommateProfile; user: UserProfile; compact?: boolean }) {
+   function RoommateWheel({
+    state,
+    onSwipe,
+  }: {
+    state: AppState;
+    onSwipe: (
+      profile: RoommateProfile,
+      decision: "like" | "pass"
+    ) => void | Promise<void>;
+  }) {
+    const [dragX, setDragX] = useState(0);
+    const [dragging, setDragging] = useState(false);
+    const [leaving, setLeaving] = useState<"like" | "pass" | null>(null);
+    const [busy, setBusy] = useState(false);
+    const [error, setError] = useState<string | null>(null);
+  
+    const startX = useRef<number | null>(null);
+    const locked = useRef(false);
+  
+    const reviewed = new Set(state.swipes.map((swipe) => swipe.profileId));
+  
+    const upcoming = state.profiles.filter(
+      (profile) => !reviewed.has(profile.id)
+    );
+  
+    const active = upcoming[0];
+  
+    // Passed cards occupy two history positions.
+    // On the third shift, they leave the visible wheel.
+    // Both likes and passes advance the history.
+    const history = state.swipes
+      .slice(-2)
+      .reverse()
+      .flatMap((swipe, index) => {
+        const profile = state.profiles.find(
+          (item) => item.id === swipe.profileId
+        );
+  
+        return swipe.decision === "pass" && profile
+          ? [{ profile, position: index + 1 }]
+          : [];
+      });
+  
+    async function decide(decision: "like" | "pass") {
+      if (!active || locked.current || getRemainingSwipes(state) <= 0) {
+        return;
+      }
+  
+      locked.current = true;
+      setBusy(true);
+      setError(null);
+      setDragging(false);
+      setLeaving(decision);
+  
+      try {
+        const reducedMotion = window.matchMedia(
+          "(prefers-reduced-motion: reduce)"
+        ).matches;
+  
+        await new Promise<void>((resolve) => {
+          window.setTimeout(resolve, reducedMotion ? 0 : 360);
+        });
+  
+        await onSwipe(active, decision);
+      } catch {
+        setError("That swipe did not save. Please try again.");
+      } finally {
+        setDragX(0);
+        setLeaving(null);
+        setBusy(false);
+        locked.current = false;
+      }
+    }
+  
+    if (!active) return null;
+  
+    const cards = [
+      ...upcoming.slice(0, 3).map((profile, index) => ({
+        profile,
+        position: -index,
+      })),
+      ...history,
+    ];
+  
+    return (
+      <div className="min-w-0">
+        <p className="mb-5 text-center text-sm text-purple-100/70">
+          Drag left to like · Drag right to pass
+        </p>
+  
+        <div className="roommate-wheel">
+          {cards.map(({ profile, position }) => {
+            const isActive = position === 0;
+            const distance = Math.abs(position);
+  
+            let transform = isActive
+              ? `translateX(${dragX}px) rotate(${dragX / 24}deg)`
+              : `translateX(${position * 39}%) translateY(-${
+                  distance * 28
+                }px) scale(${1 - distance * 0.13}) rotate(${
+                  position * 5
+                }deg)`;
+  
+            let opacity = isActive ? 1 : distance === 1 ? 0.52 : 0.24;
+  
+            if (isActive && leaving === "pass") {
+              transform =
+                "translateX(39%) translateY(-28px) scale(0.87) rotate(5deg)";
+              opacity = 0.52;
+            }
+  
+            if (isActive && leaving === "like") {
+              transform =
+                "translateX(-115%) translateY(35px) scale(0.9) rotate(-15deg)";
+              opacity = 0;
+            }
+  
+            return (
+              <div
+                key={profile.id}
+                className="wheel-card"
+                aria-hidden={!isActive}
+                style={{
+                  gridArea: "1 / 1",
+                  zIndex: isActive ? 10 : 5 - distance,
+                  transform,
+                  opacity,
+                  pointerEvents: isActive && !busy ? "auto" : "none",
+                  transition: dragging && isActive ? "none" : undefined,
+                  cursor: isActive
+                    ? dragging
+                      ? "grabbing"
+                      : "grab"
+                    : undefined,
+                }}
+                onPointerDown={(event) => {
+                  if (!isActive || busy || event.button !== 0) return;
+  
+                  startX.current = event.clientX;
+                  setDragging(true);
+                  event.currentTarget.setPointerCapture(event.pointerId);
+                }}
+                onPointerMove={(event) => {
+                  if (startX.current === null || !isActive || busy) return;
+  
+                  setDragX(event.clientX - startX.current);
+                }}
+                onPointerUp={(event) => {
+                  if (startX.current === null) return;
+  
+                  const delta = event.clientX - startX.current;
+                  const threshold = Math.min(
+                    100,
+                    event.currentTarget.offsetWidth * 0.25
+                  );
+  
+                  startX.current = null;
+                  setDragging(false);
+  
+                  if (
+                    event.currentTarget.hasPointerCapture(event.pointerId)
+                  ) {
+                    event.currentTarget.releasePointerCapture(
+                      event.pointerId
+                    );
+                  }
+  
+                  if (Math.abs(delta) >= threshold) {
+                    void decide(delta < 0 ? "like" : "pass");
+                  } else {
+                    setDragX(0);
+                  }
+                }}
+                onPointerCancel={() => {
+                  startX.current = null;
+                  setDragging(false);
+                  setDragX(0);
+                }}
+                onLostPointerCapture={() => {
+                  startX.current = null;
+                  setDragging(false);
+                }}
+              >
+                <div className="relative">
+                  <ProfileCard profile={profile} user={state.user} />
+  
+                  {!isActive && (
+                    <div className="absolute inset-0 rounded-[2rem] bg-[#261c30]/25" />
+                  )}
+  
+                  {isActive && (Math.abs(dragX) > 25 || leaving) && (
+                    <div
+                      className="absolute left-5 top-5 rounded-xl border-2 px-4 py-2 text-xl font-bold shadow-lg"
+                      style={{
+                        background: "#251b30",
+                        color:
+                          (leaving ?? (dragX < 0 ? "like" : "pass")) ===
+                          "like"
+                            ? "#bef5da"
+                            : "#f6c6d4",
+                        borderColor: "currentColor",
+                      }}
+                    >
+                      {(leaving ?? (dragX < 0 ? "like" : "pass")) ===
+                      "like"
+                        ? "LIKE"
+                        : "PASS"}
+                    </div>
+                  )}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+  
+        <div className="relative z-20 mx-auto mt-6 grid max-w-md grid-cols-2 gap-4">
+          <button
+            type="button"
+            disabled={busy}
+            onClick={() => void decide("like")}
+            className="min-h-14 rounded-full bg-[#f4ccf5] px-6 text-lg font-semibold text-[#362536] transition hover:bg-[#fbe2fc] disabled:opacity-50"
+          >
+            ♡ Like
+          </button>
+  
+          <button
+            type="button"
+            disabled={busy}
+            onClick={() => void decide("pass")}
+            className="min-h-14 rounded-full border border-white/20 bg-white/5 px-6 text-lg font-semibold text-white transition hover:bg-white/10 disabled:opacity-50"
+          >
+            × Pass
+          </button>
+        </div>
+  
+        {error && (
+          <p role="alert" className="mt-3 text-center text-rose-200">
+            {error}
+          </p>
+        )}
+  
+        <style jsx>{`
+          .roommate-wheel {
+            display: grid;
+            grid-template-columns: minmax(0, 480px);
+            justify-content: center;
+            align-items: start;
+            overflow: hidden;
+            padding: 78px 16px 24px;
+            isolation: isolate;
+          }
+  
+          .wheel-card {
+            min-width: 0;
+            transform-origin: center 70%;
+            transition:
+              transform 360ms cubic-bezier(0.22, 1, 0.36, 1),
+              opacity 360ms ease;
+            touch-action: pan-y;
+            user-select: none;
+          }
+  
+          @media (min-width: 640px) {
+            .roommate-wheel {
+              padding-inline: 100px;
+            }
+          }
+  
+          @media (prefers-reduced-motion: reduce) {
+            .wheel-card {
+              transition: none;
+            }
+          }
+        `}</style>
+      </div>
+    );
+  }
+
+  function ProfileCard({ profile, user, compact = false }: { profile: RoommateProfile; user: UserProfile; compact?: boolean }) {
   const compatibility = useMemo(() => getCompatibility(user, profile), [user, profile]);
 
   return (
