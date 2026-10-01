@@ -21,12 +21,7 @@ export function AboutPage({ onNavigate }: AboutPageProps) {
       name: 'Kinshuk Goel',
       role: 'Co-Founder & Backend Developer',
       description: 'Focused on building and maintaining the platform\'s core functionality, infrastructure, and backend systems.'
-    },
-    {
-      name: 'Mahek Sharma',
-      role: 'Co-Founder & User Research',
-      description: 'Focused on user research, community outreach, and gathering student feedback to shape the platform.'
-    }
+
   ];
 
   return (
@@ -73,7 +68,7 @@ export function AboutPage({ onNavigate }: AboutPageProps) {
               </p>
 
               <p>
-                We're a team of four Rutgers students who experienced firsthand how stressful and disconnected the roommate search process can be. We wanted to create something that feels more natural, social, and student-focused — a platform where finding a roommate is based on compatibility, lifestyle, habits, and genuine connection rather than luck.
+                We're a team of three Rutgers students who experienced firsthand how stressful and disconnected the roommate search process can be. We wanted to create something that feels more natural, social, and student-focused — a platform where finding a roommate is based on compatibility, lifestyle, habits, and genuine connection rather than luck.
               </p>
 
               <p className="text-purple-600 dark:text-purple-400 font-semibold" style={{ color: '#9333EA' }}>
