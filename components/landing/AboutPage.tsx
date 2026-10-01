@@ -21,7 +21,7 @@ export function AboutPage({ onNavigate }: AboutPageProps) {
       name: 'Kinshuk Goel',
       role: 'Co-Founder & Backend Developer',
       description: 'Focused on building and maintaining the platform\'s core functionality, infrastructure, and backend systems.'
-
+    }
   ];
 
   return (
